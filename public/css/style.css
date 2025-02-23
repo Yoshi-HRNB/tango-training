@@ -1,0 +1,37 @@
+/* 例: Bootstrapを併用する場合は少なめでもOK。ここでは簡単な例を記載します。 */
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  background: #f8f9fa; /* 薄いグレー */
+}
+
+.container {
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 1em;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+header, footer {
+  text-align: center;
+  margin-bottom: 1em;
+}
+
+nav a {
+  margin: 0 0.5em;
+  text-decoration: none;
+  color: #007bff;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+h1, h2 {
+  text-align: center;
+  margin-top: 0.5em;
+}
