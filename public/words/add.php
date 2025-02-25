@@ -111,6 +111,13 @@ if (!isset($_SESSION['user_id'])) {
     </style>
   </head>
   <body>
+    <!-- 画面上部に add_from_picture.php へのリンク追加 -->
+    <header style="text-align: center; margin-top: 10px;">
+      <a href="add_from_picture.php" style="font-size: 1.2em; color: #008cba; text-decoration: none;">
+        写真から単語追加
+      </a>
+    </header>
+    
     <div class="container">
       <h1>単語登録フォーム</h1>
 
@@ -211,6 +218,7 @@ if (!isset($_SESSION['user_id'])) {
         <button type="submit">登録</button>
       </form>
       <p><a href="list.php">単語一覧へ戻る</a></p>
+      <p><a href="../index.php">トップに戻る</a></p>
     </div>
 
     <script>

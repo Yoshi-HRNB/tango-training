@@ -1,7 +1,8 @@
 {
   "name": "yourname/tango_training",
   "require": {
-    "php": ">=7.4"
+    "php": ">=7.4",
+    "google/cloud-vision": "^1.10"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.0"

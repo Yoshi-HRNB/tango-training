@@ -11,7 +11,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // テストエラー
-echo $undefined_variable;
+// echo $undefined_variable; // Commented out to avoid warning
 
 session_start();
 // ログインチェック

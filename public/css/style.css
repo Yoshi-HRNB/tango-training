@@ -1,37 +1,123 @@
 /* 例: Bootstrapを併用する場合は少なめでもOK。ここでは簡単な例を記載します。 */
 
 body {
+  font-family: "Roboto", sans-serif;
   margin: 0;
   padding: 0;
-  font-family: sans-serif;
-  background: #f8f9fa; /* 薄いグレー */
+  background-color: #f0f2f5;
+  color: #333;
+  font-size: 18px; /* 文字サイズを大きく */
 }
 
 .container {
   width: 90%;
   max-width: 800px;
-  margin: 0 auto;
-  background: #ffffff;
-  padding: 1em;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-header, footer {
+header,
+footer {
   text-align: center;
-  margin-bottom: 1em;
+  margin-bottom: 1.5em;
 }
 
 nav a {
-  margin: 0 0.5em;
+  margin: 0 1em;
   text-decoration: none;
   color: #007bff;
+  font-size: 18px; /* 文字サイズを大きく */
 }
 
 nav a:hover {
   text-decoration: underline;
 }
 
-h1, h2 {
+h1 {
+  font-size: 32px; /* 文字サイズを大きく */
+  color: #333;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+h2 {
   text-align: center;
   margin-top: 0.5em;
+  font-size: 24px; /* 文字サイズを大きく */
+}
+
+button {
+  display: inline-block;
+  padding: 14px 28px; /* パディングを大きく */
+  margin: 10px;
+  font-size: 18px; /* 文字サイズを大きく */
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:disabled {
+  background-color: #ccc;
+}
+
+button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+#wordContainer .word-item {
+  margin-bottom: 20px;
+  padding: 20px; /* パディングを大きく */
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 18px; /* 文字サイズを大きく */
+}
+
+.answer-placeholder {
+  color: #888;
+  cursor: pointer;
+  padding: 14px; /* パディングを大きく */
+  background-color: #e9e9e9;
+  border-radius: 5px;
+  text-align: center;
+  transition: background-color 0.3s ease;
+  font-size: 18px; /* 文字サイズを大きく */
+}
+
+.answer-placeholder:hover {
+  background-color: #d9d9d9;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px;
+  }
+
+  button {
+    width: 100%;
+    margin: 10px 0;
+    font-size: 16px; /* スマホ用に文字サイズを調整 */
+  }
+
+  h1 {
+    font-size: 28px; /* スマホ用に文字サイズを調整 */
+  }
+
+  h2 {
+    font-size: 22px; /* スマホ用に文字サイズを調整 */
+  }
+
+  #wordContainer .word-item {
+    font-size: 16px; /* スマホ用に文字サイズを調整 */
+  }
+
+  .answer-placeholder {
+    font-size: 16px; /* スマホ用に文字サイズを調整 */
+  }
 }

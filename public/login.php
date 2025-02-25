@@ -7,6 +7,11 @@
 
 session_start();
 
+// エラーログを表示するための設定
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // すでにログイン済みならトップへリダイレクト
 if (isset($_SESSION['user_id'])) {
     header('Location: index.php');
@@ -36,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user !== false) {
             // 認証成功 → セッションにユーザー情報を格納
-            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['user_name'] = $user['name']; // 参考: 表示用
             $_SESSION['user_role'] = $user['role']; // 参考: 権限管理用
             header('Location: index.php');

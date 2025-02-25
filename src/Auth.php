@@ -59,7 +59,7 @@ class Auth
      */
     public function login(string $email, string $password)
     {
-        $sql = "SELECT id, email, password, name, role FROM users WHERE email = :email";
+        $sql = "SELECT user_id, email, password, name, role FROM users WHERE email = :email";
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue(':email', $email);
         $stmt->execute();

@@ -5,7 +5,107 @@
   <title>単語帳形式テスト - 再テスト対応</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    body {
+      font-family: "Roboto", sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f2f5;
+      color: #333;
+    }
 
+    .container {
+      width: 90%;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 30px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    header,
+    footer {
+      text-align: center;
+      margin-bottom: 1.5em;
+    }
+
+    nav a {
+      margin: 0 1em;
+      text-decoration: none;
+      color: #007bff;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #333;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-top: 0.5em;
+    }
+
+    button {
+      display: inline-block;
+      padding: 12px 24px;
+      margin: 10px;
+      font-size: 16px;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+
+    #wordContainer .word-item {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .answer-placeholder {
+      color: #888;
+      cursor: pointer;
+      padding: 12px;
+      background-color: #e9e9e9;
+      border-radius: 5px;
+      text-align: center;
+      transition: background-color 0.3s ease;
+    }
+
+    .answer-placeholder:hover {
+      background-color: #d9d9d9;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      button {
+        width: 100%;
+        margin: 10px 0;
+      }
+    }
+  </style>
   <script>
     let words = [];       // サーバーから取得した問題一覧
     let userChecks = [];  // 各問題に対するユーザの解答(正解=true/不正解=false/未回答=null)
@@ -87,27 +187,30 @@
         q.innerText = `${i+1}. ${item.word} [${item.language_code}]`;
         div.appendChild(q);
 
-        // (2) 「答えを見る」ボタン
-        const revealBtn = document.createElement('button');
-        revealBtn.innerText = '答えを見る';
-        // 押すまで答えを隠すための要素
+        // (2)'正解欄'を作成（初めはプレースホルダーを表示）
         const ansDiv = document.createElement('div');
-        ansDiv.style.display = 'none';
+        // プレースホルダー用のクラスを追加（CSSで見た目調整も可能）
+        ansDiv.classList.add('answer-placeholder');
+        ansDiv.innerText = '正解欄（タップして表示）';
 
-        revealBtn.onclick = () => {
-          ansDiv.style.display = 'block';
+        // タップ時に答えを表示／隠す処理
+        ansDiv.onclick = () => {
+          if (ansDiv.classList.contains('answer-placeholder')) {
+            // 表示状態に切替：実際の訳を表示
+            if (item.translations && item.translations.length > 0) {
+              ansDiv.innerText = '訳: ' + item.translations
+                .map(t => `${t.translation} [${t.language_code}]`)
+                .join(', ');
+            } else {
+              ansDiv.innerText = '訳: なし';
+            }
+            ansDiv.classList.remove('answer-placeholder');
+          } else {
+            // 再度隠す（プレースホルダーに戻す）
+            ansDiv.innerText = '正解欄（タップして表示）';
+            ansDiv.classList.add('answer-placeholder');
+          }
         };
-        div.appendChild(revealBtn);
-
-        // (3) 訳一覧を表示
-        if (item.translations && item.translations.length > 0) {
-          // 例: "訳: こんにちは [ja], hello [en]"
-          ansDiv.innerText = '訳: ' + item.translations
-            .map(t => `${t.translation} [${t.language_code}]`)
-            .join(', ');
-        } else {
-          ansDiv.innerText = '訳: なし';
-        }
         div.appendChild(ansDiv);
 
         // (4) 正解/不正解ボタン
@@ -277,7 +380,7 @@
 
   <div style="margin-top:10px;">
     <button onclick="submitTest()">テストを終了して結果を保存</button>
-    <!-- テスト結果保存後に表示するボタン -->
+<!-- テスト結果保存後に表示するボタン -->
     <button id="retryBtn" style="display:none;" onclick="doRetryTest()">間違い再テスト</button>
     <button id="summaryBtn" style="display:none;" onclick="showSummary()">最終結果を見る</button>
   </div>

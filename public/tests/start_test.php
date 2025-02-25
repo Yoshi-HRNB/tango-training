@@ -61,20 +61,11 @@ $_SESSION['is_retry_test'] = false;
 
 // テストタイプに基づいてリダイレクト先を決定
 switch ($testType) {
-    case 1:
-        header('Location: input_test.php');
-        break;
     case 2:
         header('Location: reveal_test.php');
         break;
-    case 3:
-        header('Location: multiple_choice_test.php');
-        break;
     case 4:
         header('Location: learn_mode.php');
-        break;
-    case 5:
-        header('Location: practice_test.php');
         break;
     default:
         // デフォルトのリダイレクト先、またはエラーメッセージ

@@ -1,0 +1,10 @@
+/vendor/
+/config/
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
+.DS_Store
+
+# PHPUnitのキャッシュ
+.phpunit.result.cache
