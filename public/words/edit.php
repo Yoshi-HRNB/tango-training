@@ -32,234 +32,75 @@ $translations = $wordController->getTranslationsByWordId($id);
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>単語編集 - Multilingual Vocabulary App with DeepSeek</title>
+  <title>単語編集 - Multilingual Vocabulary App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    .translations {
-      margin-top: 10px;
-    }
-    .translation-item {
-      display: flex;
-      margin-bottom: 5px;
-      align-items: center;
-    }
-    .translation-item select,
-    .translation-item input,
-    .translation-item textarea {
-      margin-right: 10px;
-      padding: 5px;
-      font-size: 1em;
-    }
-    .translation-item button {
-      padding: 5px 10px;
-      font-size: 0.9em;
-      background-color: #ff4d4d;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .translation-item button:hover {
-      background-color: #ff1a1a;
-    }
-    #loadingIndicator {
-      display: none;
-      font-weight: bold;
-      color: red;
-      margin-bottom: 10px;
-    }
-    #example,
-    #noExample,
-    #noTranslations {
-      font-style: italic;
-      margin-top: 5px;
-    }
-    #noExample,
-    #noTranslations {
-      color: #555;
-    }
-    #addTranslationButton,
-    .add-translation-button {
-      padding: 7px 15px;
-      font-size: 1em;
-      background-color: #4caf50;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    #addTranslationButton:hover,
-    .add-translation-button:hover {
-      background-color: #45a049;
-    }
-    button[type="submit"] {
-      padding: 10px 20px;
-      font-size: 1em;
-      background-color: #008cba;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    button[type="submit"]:hover {
-      background-color: #007bb5;
-    }
-    a {
-      color: #008cba;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    textarea {
-      width: 100%;
-      height: 100px;
-      resize: vertical;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-  </style>
 </head>
 <body>
   <div class="container">
-    <h1>単語編集フォーム</h1>
+    <div class="card">
+      <h1>単語編集</h1>
 
-    <!-- ローディング状態を表示する要素 -->
-    <div id="loadingIndicator">読み込み中...</div>
-
-    <form action="update.php" method="post" id="editWordForm">
-      <!-- 旧: value="<?php echo (int)$wordData['id']; ?>" → 新: word_id -->
-      <input type="hidden" name="id" value="<?php echo (int)$wordData['word_id']; ?>">
-
-      <div class="form-group">
-        <label for="language_code">言語コード (ja/en/vi など):</label><br />
-        <select id="language_code" name="language_code" required>
-          <option value="ja" <?php echo $wordData['language_code'] === 'ja' ? 'selected' : ''; ?>>日本語</option>
-          <option value="en" <?php echo $wordData['language_code'] === 'en' ? 'selected' : ''; ?>>英語</option>
-          <option value="vi" <?php echo $wordData['language_code'] === 'vi' ? 'selected' : ''; ?>>ベトナム語</option>
-          <option value="es" <?php echo $wordData['language_code'] === 'es' ? 'selected' : ''; ?>>スペイン語</option>
-          <option value="fr" <?php echo $wordData['language_code'] === 'fr' ? 'selected' : ''; ?>>フランス語</option>
-          <option value="de" <?php echo $wordData['language_code'] === 'de' ? 'selected' : ''; ?>>ドイツ語</option>
-          <!-- 必要に応じて他の言語を追加 -->
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="word">単語 / 文章:</label><br />
-        <textarea
-          id="word"
-          name="word"
-          placeholder="単語や文章を入力してください (例: りんご)"
-          required
-        ><?php echo htmlspecialchars($wordData['word'], ENT_QUOTES, 'UTF-8'); ?></textarea>
-      </div>
-
-      <!-- 例文表示（有無で表示を切り替え） -->
-      <div id="example" style="display: none">
-        例文: <span id="exampleText"></span>
-      </div>
-      <div id="noExample" style="display: none">例文はありません。</div>
-
-      <div class="form-group">
-        <label>訳:</label>
-        <div id="translations" class="translations">
-          <?php if (!empty($translations)): ?>
-            <?php foreach ($translations as $translation): ?>
-              <div class="translation-item">
-                <select name="word_translation_language[]" required>
-                  <option value="ja" <?php echo ($translation['language_code'] === 'ja' ? 'selected' : ''); ?>>日本語</option>
-                  <option value="en" <?php echo ($translation['language_code'] === 'en' ? 'selected' : ''); ?>>英語</option>
-                  <option value="vi" <?php echo ($translation['language_code'] === 'vi' ? 'selected' : ''); ?>>ベトナム語</option>
-                  <option value="es" <?php echo ($translation['language_code'] === 'es' ? 'selected' : ''); ?>>スペイン語</option>
-                  <option value="fr" <?php echo ($translation['language_code'] === 'fr' ? 'selected' : ''); ?>>フランス語</option>
-                  <option value="de" <?php echo ($translation['language_code'] === 'de' ? 'selected' : ''); ?>>ドイツ語</option>
-                  <!-- 必要に応じて他の言語を追加 -->
-                </select>
-                <input
-                  type="text"
-                  name="word_translation[]"
-                  placeholder="訳を入力してください"
-                  value="<?php echo htmlspecialchars($translation['translation'], ENT_QUOTES, 'UTF-8'); ?>"
-                  required
-                />
-                <button type="button" onclick="removeTranslation(this)">削除</button>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <!-- 翻訳が存在しない場合の初期行。必要なら複数行追加など調整してください -->
-            <div class="translation-item">
-              <select name="word_translation_language[]" required>
-                <option value="en">英語</option>
-                <option value="ja" selected>日本語</option>
-                <option value="vi">ベトナム語</option>
-                <option value="es">スペイン語</option>
-                <option value="fr">フランス語</option>
-                <option value="de">ドイツ語</option>
-              </select>
-              <input
-                type="text"
-                name="word_translation[]"
-                placeholder="訳を入力してください"
-                required
-              />
-              <button type="button" onclick="removeTranslation(this)">
-                削除
-              </button>
-            </div>
-            <div class="translation-item">
-              <select name="word_translation_language[]" required>
-                <option value="en">英語</option>
-                <option value="ja" selected>日本語</option>
-                <option value="vi">ベトナム語</option>
-                <option value="es">スペイン語</option>
-                <option value="fr">フランス語</option>
-                <option value="de">ドイツ語</option>
-              </select>
-              <input
-                type="text"
-                name="word_translation[]"
-                placeholder="訳を入力してください"
-                required
-              />
-              <button type="button" onclick="removeTranslation(this)">
-                削除
-              </button>
-            </div>
-          <?php endif; ?>
+      <form action="update.php" method="post">
+        <input type="hidden" name="word_id" value="<?php echo (int)$wordData['word_id']; ?>">
+        
+        <div class="form-group">
+          <label for="language_code">言語コード:</label>
+          <select id="language_code" name="language_code" required>
+            <option value="ja" <?php echo $wordData['language_code'] === 'ja' ? 'selected' : ''; ?>>日本語</option>
+            <option value="en" <?php echo $wordData['language_code'] === 'en' ? 'selected' : ''; ?>>英語</option>
+            <option value="vi" <?php echo $wordData['language_code'] === 'vi' ? 'selected' : ''; ?>>ベトナム語</option>
+            <option value="es" <?php echo $wordData['language_code'] === 'es' ? 'selected' : ''; ?>>スペイン語</option>
+            <option value="fr" <?php echo $wordData['language_code'] === 'fr' ? 'selected' : ''; ?>>フランス語</option>
+            <option value="de" <?php echo $wordData['language_code'] === 'de' ? 'selected' : ''; ?>>ドイツ語</option>
+          </select>
         </div>
-        <!-- ユーザーが手動で翻訳行を追加するためのボタン -->
-        <button type="button" id="addTranslationButton">翻訳を追加</button>
-        <!-- 翻訳が見つからない場合に表示 -->
-        <div id="noTranslations" style="display: none">
-          翻訳が見つかりませんでした。
+
+        <div class="form-group">
+          <label for="word">単語 / 文章:</label>
+          <textarea id="word" name="word" placeholder="単語や文章を入力してください" required><?php echo htmlspecialchars($wordData['word'], ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="supplement">補足:</label><br />
-        <textarea
-          id="supplement"
-          name="supplement"
-          placeholder="補足情報を入力してください"
-        ><?php echo htmlspecialchars($wordData['note'], ENT_QUOTES, 'UTF-8'); ?></textarea>
-      </div>
+        <div class="form-group">
+          <label>訳:</label>
+          <div id="translations">
+            <?php if (!empty($translations)): ?>
+              <?php foreach ($translations as $t): ?>
+                <div class="translation-item mb-2">
+                  <div class="flex gap-2 flex-wrap">
+                    <select name="word_translation_language[]" required>
+                      <option value="en" <?php echo $t['language_code'] === 'en' ? 'selected' : ''; ?>>英語</option>
+                      <option value="ja" <?php echo $t['language_code'] === 'ja' ? 'selected' : ''; ?>>日本語</option>
+                      <option value="vi" <?php echo $t['language_code'] === 'vi' ? 'selected' : ''; ?>>ベトナム語</option>
+                      <option value="es" <?php echo $t['language_code'] === 'es' ? 'selected' : ''; ?>>スペイン語</option>
+                      <option value="fr" <?php echo $t['language_code'] === 'fr' ? 'selected' : ''; ?>>フランス語</option>
+                      <option value="de" <?php echo $t['language_code'] === 'de' ? 'selected' : ''; ?>>ドイツ語</option>
+                    </select>
+                    <input type="text" name="word_translation[]" value="<?php echo htmlspecialchars($t['translation'], ENT_QUOTES, 'UTF-8'); ?>" placeholder="訳を入力してください" required>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeTranslation(this)">削除</button>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+          
+          <button type="button" id="addTranslationButton" class="btn btn-outline mt-2">翻訳を追加</button>
+        </div>
 
-      <!-- 更新ボタン -->
-      <button type="submit">更新</button>
-    </form>
-    <p><a href="list.php">単語一覧へ戻る</a></p>
+        <div class="form-group">
+          <label for="supplement">補足:</label>
+          <textarea id="supplement" name="supplement" placeholder="補足情報を入力してください"><?php echo htmlspecialchars($wordData['note'], ENT_QUOTES, 'UTF-8'); ?></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">更新</button>
+      </form>
+      
+      <div class="nav-links mt-3">
+        <a href="list.php">単語一覧へ戻る</a>
+        <a href="../index.php">トップへ戻る</a>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -282,7 +123,10 @@ $translations = $wordController->getTranslationsByWordId($id);
       const translationsDiv = document.getElementById("translations");
 
       const translationItem = document.createElement("div");
-      translationItem.className = "translation-item";
+      translationItem.className = "translation-item mb-2";
+
+      const flexContainer = document.createElement("div");
+      flexContainer.className = "flex gap-2 flex-wrap";
 
       // 言語セレクトボックス
       const langSelect = document.createElement("select");
@@ -307,14 +151,16 @@ $translations = $wordController->getTranslationsByWordId($id);
       // 削除ボタン
       const removeButton = document.createElement("button");
       removeButton.type = "button";
+      removeButton.className = "btn btn-danger btn-sm";
       removeButton.textContent = "削除";
       removeButton.onclick = function () {
         translationItem.remove();
       };
 
-      translationItem.appendChild(langSelect);
-      translationItem.appendChild(wordInput);
-      translationItem.appendChild(removeButton);
+      flexContainer.appendChild(langSelect);
+      flexContainer.appendChild(wordInput);
+      flexContainer.appendChild(removeButton);
+      translationItem.appendChild(flexContainer);
 
       translationsDiv.appendChild(translationItem);
     }

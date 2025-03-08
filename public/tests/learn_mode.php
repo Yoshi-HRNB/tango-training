@@ -96,84 +96,46 @@ if ($isRetry) {
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>覚えるモード</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
-  <style>
-    .card-container {
-      width: 300px;
-      margin: 40px auto;
-      perspective: 1000px;
-    }
-    .card {
-      width: 100%;
-      height: 200px;
-      text-align: center;
-      position: relative;
-      transition: transform 0.6s;
-      transform-style: preserve-3d;
-      cursor: pointer;
-      border: 2px solid #ccc;
-      border-radius: 10px;
-    }
-    .card.is-flipped {
-      transform: rotateY(180deg);
-    }
-    .card-face {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      backface-visibility: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      padding: 10px;
-    }
-    .card-front {
-      background: #fafafa;
-    }
-    .card-back {
-      background: #fce4ec;
-      transform: rotateY(180deg);
-    }
-    .button-group {
-      text-align: center;
-      margin-top: 10px;
-    }
-    .button-group button {
-      margin: 0 5px;
-      padding: 5px 10px;
-      cursor: pointer;
-    }
-    #message {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 1.1rem;
-      color: green;
-    }
-  </style>
 </head>
 <body>
+  <div class="container">
+    <?php if ($isRetry): ?>
+      <h1>覚えるモード (再学習: 覚えていない単語のみ)</h1>
+    <?php else: ?>
+      <h1>覚えるモード (初回)</h1>
+    <?php endif; ?>
 
-  <?php if ($isRetry): ?>
-    <h1 style="text-align:center;">覚えるモード (再学習: 覚えていない単語のみ)</h1>
-  <?php else: ?>
-    <h1 style="text-align:center;">覚えるモード (初回)</h1>
-  <?php endif; ?>
+    <?php if ($isRetry && empty($words)): ?>
+      <div class="card">
+        <p class="text-center">再学習する単語がありません。全ての単語を覚えています！</p>
+        <div class="text-center mt-3">
+          <a href="../index.php" class="btn btn-primary">トップへ戻る</a>
+        </div>
+      </div>
+      <?php exit; ?>
+    <?php endif; ?>
 
-  <?php if ($isRetry && empty($words)): ?>
-    <p style="text-align:center;">再学習する単語がありません。全ての単語を覚えています！</p>
-    <p style="text-align:center;"><a href="../index.php">トップへ戻る</a></p>
-    <?php exit; ?>
-  <?php endif; ?>
+    <div class="card">
+      <p class="text-center mb-3">
+        カードをクリックすると裏面(訳)を表示できます。<br>
+        ボタンで「覚えた」または「覚えてない」を記録してください。
+      </p>
 
-  <p style="text-align:center;">
-    カードをクリックすると裏面(訳)を表示できます。<br>
-    ボタンで「覚えた」または「覚えてない」を記録してください。
-  </p>
-
-  <div id="cards-area" style="text-align:center;"></div>
-  <div id="message"></div>
+      <div id="cards-area"></div>
+      <div id="message" class="alert mt-2" style="display: none;"></div>
+      
+      <div class="flex justify-center gap-2 mt-3">
+        <?php if (!$isRetry): ?>
+          <a href="?retry=1" class="btn btn-outline">覚えてない単語だけ再学習する</a>
+        <?php endif; ?>
+        <a href="../index.php" class="btn btn-outline">トップへ戻る</a>
+      </div>
+    </div>
+  </div>
 
   <script>
     /**
@@ -202,26 +164,26 @@ if ($isRetry) {
       const item = currentWords[index];
       const cardHtml = `
         <div class="card-container">
-          <div class="card" id="flashCard">
+          <div class="card-flip" id="flashCard">
             <div class="card-face card-front">
-              <div>
-                <strong>${item.word}</strong><br>
-                [${item.language_code}]<br>
-                <small style="color:gray;">${item.note || ''}</small>
+              <div class="text-center">
+                <h2>${item.word}</h2>
+                <p class="mb-1">[${item.language_code}]</p>
+                <p class="text-light">${item.note || ''}</p>
               </div>
             </div>
             <div class="card-face card-back">
-              <strong>${item.translation}</strong>
+              <h2>${item.translation}</h2>
             </div>
           </div>
         </div>
-        <div class="button-group">
-          <button onclick="markKnown(${index})">覚えた</button>
-          <button onclick="markUnknown(${index})">覚えてない</button>
+        <div class="flex justify-center gap-2 mt-2">
+          <button onclick="markKnown(${index})" class="btn btn-success">覚えた</button>
+          <button onclick="markUnknown(${index})" class="btn btn-danger">覚えてない</button>
         </div>
       `;
       document.getElementById('cards-area').innerHTML = cardHtml;
-      document.getElementById('message').textContent = ''; // メッセージ消去
+      document.getElementById('message').style.display = 'none'; // メッセージ消去
 
       // カードクリックで裏表を反転
       const cardEl = document.getElementById('flashCard');
@@ -265,6 +227,12 @@ if ($isRetry) {
         formData.append('word_id', wordId);
         formData.append('result', resultType);
 
+        // 記録中のメッセージを表示
+        const msgEl = document.getElementById('message');
+        msgEl.className = 'alert alert-success';
+        msgEl.textContent = '記録中...';
+        msgEl.style.display = 'block';
+
         const response = await fetch('record_learn_result.php', {
           method: 'POST',
           body: formData
@@ -272,11 +240,18 @@ if ($isRetry) {
 
         const data = await response.json();
         if (!response.ok || data.error) {
-          alert('エラー: ' + (data.error || '不明なエラー'));
+          msgEl.className = 'alert alert-danger';
+          msgEl.textContent = 'エラー: ' + (data.error || '不明なエラー');
+        } else {
+          msgEl.className = 'alert alert-success';
+          msgEl.textContent = resultType === 'known' ? '「覚えた」を記録しました' : '「覚えてない」を記録しました';
         }
       } catch (error) {
         console.error('通信エラー:', error);
-        alert('通信エラーが発生しました。');
+        const msgEl = document.getElementById('message');
+        msgEl.className = 'alert alert-danger';
+        msgEl.textContent = '通信エラーが発生しました。';
+        msgEl.style.display = 'block';
       }
     }
 
@@ -301,15 +276,5 @@ if ($isRetry) {
     // 初期化
     init();
   </script>
-
-  <?php if (!$isRetry): ?>
-    <!-- 初回の学習後に覚えてない単語だけ再学習したい場合 -->
-    <p style="text-align:center; margin-top:20px;">
-      1周目の学習が終わったら、
-      <strong>「覚えてない」単語</strong>だけを再学習できます。<br>
-      → <a href="?retry=1">覚えてない単語だけ再学習する</a>
-    </p>
-  <?php endif; ?>
-
 </body>
 </html>

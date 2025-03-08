@@ -4,108 +4,8 @@
   <meta charset="UTF-8">
   <title>単語帳形式テスト - 再テスト対応</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
-  <style>
-    body {
-      font-family: "Roboto", sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f0f2f5;
-      color: #333;
-    }
-
-    .container {
-      width: 90%;
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 30px;
-      background-color: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    header,
-    footer {
-      text-align: center;
-      margin-bottom: 1.5em;
-    }
-
-    nav a {
-      margin: 0 1em;
-      text-decoration: none;
-      color: #007bff;
-    }
-
-    nav a:hover {
-      text-decoration: underline;
-    }
-
-    h1 {
-      font-size: 28px;
-      color: #333;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    h2 {
-      text-align: center;
-      margin-top: 0.5em;
-    }
-
-    button {
-      display: inline-block;
-      padding: 12px 24px;
-      margin: 10px;
-      font-size: 16px;
-      color: #fff;
-      background-color: #007bff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    button:disabled {
-      background-color: #ccc;
-    }
-
-    button:hover:not(:disabled) {
-      background-color: #0056b3;
-    }
-
-    #wordContainer .word-item {
-      margin-bottom: 20px;
-      padding: 15px;
-      background-color: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-
-    .answer-placeholder {
-      color: #888;
-      cursor: pointer;
-      padding: 12px;
-      background-color: #e9e9e9;
-      border-radius: 5px;
-      text-align: center;
-      transition: background-color 0.3s ease;
-    }
-
-    .answer-placeholder:hover {
-      background-color: #d9d9d9;
-    }
-
-    @media (max-width: 600px) {
-      .container {
-        padding: 20px;
-      }
-
-      button {
-        width: 100%;
-        margin: 10px 0;
-      }
-    }
-  </style>
   <script>
     let words = [];       // サーバーから取得した問題一覧
     let userChecks = [];  // 各問題に対するユーザの解答(正解=true/不正解=false/未回答=null)
@@ -118,7 +18,6 @@
     window.onload = async () => {
       await loadQuestions();
     };
-
 
     /**
      * 問題をfetchで取得する
@@ -172,7 +71,7 @@
       const endIndex   = Math.min(startIndex + pageSize, words.length);
 
       if (startIndex >= words.length) {
-        container.innerText = '問題がありません。';
+        container.innerHTML = '<div class="alert">問題がありません。</div>';
         document.getElementById('scoreDisplay').innerText = '';
         return;
       }
@@ -180,22 +79,22 @@
       for (let i = startIndex; i < endIndex; i++) {
         const item = words[i];
         const div = document.createElement('div');
-        div.className = 'word-item';
+        div.className = 'word-item mb-3';
 
         // (1) 単語表示
-        const q = document.createElement('div');
+        const q = document.createElement('h3');
         q.innerText = `${i+1}. ${item.word} [${item.language_code}]`;
         div.appendChild(q);
 
         // (2)'正解欄'を作成（初めはプレースホルダーを表示）
         const ansDiv = document.createElement('div');
-        // プレースホルダー用のクラスを追加（CSSで見た目調整も可能）
-        ansDiv.classList.add('answer-placeholder');
+        ansDiv.className = 'card-face card-front mt-2';
         ansDiv.innerText = '正解欄（タップして表示）';
+        ansDiv.style.cursor = 'pointer';
 
         // タップ時に答えを表示／隠す処理
         ansDiv.onclick = () => {
-          if (ansDiv.classList.contains('answer-placeholder')) {
+          if (ansDiv.classList.contains('card-front')) {
             // 表示状態に切替：実際の訳を表示
             if (item.translations && item.translations.length > 0) {
               ansDiv.innerText = '訳: ' + item.translations
@@ -204,18 +103,24 @@
             } else {
               ansDiv.innerText = '訳: なし';
             }
-            ansDiv.classList.remove('answer-placeholder');
+            ansDiv.classList.remove('card-front');
+            ansDiv.classList.add('card-back');
           } else {
             // 再度隠す（プレースホルダーに戻す）
             ansDiv.innerText = '正解欄（タップして表示）';
-            ansDiv.classList.add('answer-placeholder');
+            ansDiv.classList.remove('card-back');
+            ansDiv.classList.add('card-front');
           }
         };
         div.appendChild(ansDiv);
 
         // (4) 正解/不正解ボタン
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'flex gap-2 mt-2';
+        
         const correctBtn = document.createElement('button');
         correctBtn.innerText = '正解';
+        correctBtn.className = 'btn btn-success';
         correctBtn.onclick = () => {
           userChecks[i] = true;
           updateScore();
@@ -223,13 +128,15 @@
 
         const wrongBtn = document.createElement('button');
         wrongBtn.innerText = '不正解';
+        wrongBtn.className = 'btn btn-danger';
         wrongBtn.onclick = () => {
           userChecks[i] = false;
           updateScore();
         };
 
-        div.appendChild(correctBtn);
-        div.appendChild(wrongBtn);
+        btnContainer.appendChild(correctBtn);
+        btnContainer.appendChild(wrongBtn);
+        div.appendChild(btnContainer);
 
         // 要素をコンテナに追加
         container.appendChild(div);
@@ -367,25 +274,28 @@
   </script>
 </head>
 <body>
-<div class="container">
-  <h1>単語帳形式テスト (再テスト対応)</h1>
-  <p id="scoreDisplay">読み込み中...</p>
+  <div class="container">
+    <div class="card">
+      <h1>単語帳形式テスト</h1>
+      <p id="scoreDisplay" class="text-center mb-3">読み込み中...</p>
 
-  <div id="wordContainer">読み込み中...</div>
+      <div id="wordContainer" class="mb-3">読み込み中...</div>
 
-  <div>
-    <button id="prevBtn" onclick="prevPage()">前へ</button>
-    <button id="nextBtn" onclick="nextPage()">次へ</button>
+      <div class="flex justify-center gap-2 mb-3">
+        <button id="prevBtn" onclick="prevPage()" class="btn btn-outline">前へ</button>
+        <button id="nextBtn" onclick="nextPage()" class="btn btn-primary">次へ</button>
+      </div>
+
+      <div class="mt-3">
+        <button onclick="submitTest()" class="btn btn-success">テストを終了して結果を保存</button>
+        <button id="retryBtn" style="display:none;" onclick="doRetryTest()" class="btn btn-primary mt-2">間違い再テスト</button>
+        <button id="summaryBtn" style="display:none;" onclick="showSummary()" class="btn btn-outline mt-2">最終結果を見る</button>
+      </div>
+
+      <div class="nav-links mt-3">
+        <a href="../index.php">トップへ戻る</a>
+      </div>
+    </div>
   </div>
-
-  <div style="margin-top:10px;">
-    <button onclick="submitTest()">テストを終了して結果を保存</button>
-<!-- テスト結果保存後に表示するボタン -->
-    <button id="retryBtn" style="display:none;" onclick="doRetryTest()">間違い再テスト</button>
-    <button id="summaryBtn" style="display:none;" onclick="showSummary()">最終結果を見る</button>
-  </div>
-
-  <p><a href="../index.php">トップへ戻る</a></p>
-</div>
 </body>
 </html>

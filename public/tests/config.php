@@ -59,117 +59,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>テスト設定</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
 <div class="container">
-    <h1>テスト設定</h1>
+    <div class="card">
+        <h1>テスト設定</h1>
 
-    <!-- エラーメッセージ表示 -->
-    <?php if (!empty($errors)): ?>
-        <div style="color: red;">
-            <ul>
-                <?php foreach ($errors as $error): ?>
-                    <li><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
+        <!-- エラーメッセージ表示 -->
+        <?php if (!empty($errors)): ?>
+            <div class="alert alert-danger">
+                <ul>
+                    <?php foreach ($errors as $error): ?>
+                        <li><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
 
-    <!-- テスト設定フォーム -->
-    <form method="POST" action="">
-        <h2>テストモードを選択してください</h2>
-        <div>
-            <label>
-                <input type="radio" name="test_type" value="2"
-                    <?php echo ($testType ?? '') === '2' ? 'checked' : ''; ?>>
-                単語帳形式
-            </label>
-        </div>
-        <div>
-            <label>
-                <input type="radio" name="test_type" value="4"
-                    <?php echo ($testType ?? '') === '4' ? 'checked' : ''; ?>>
-                Learn Mode (覚えるモード)
-            </label>
-        </div>
-        <!-- <div>
-        </div>
-            <label>
-                <input type="radio" name="test_type" value="5"
-                <?php echo ($testType ?? '') === '5' ? 'checked' : ''; ?>>
-                練習モード(集計に反映しない)
-            </label>
-        <div>
-            <label>
-                <input type="radio" name="test_type" value="1"
-                    <?php echo ($testType ?? '') === '1' ? 'checked' : ''; ?>>
-                入力形式
-            </label>
-        </div>
-        <div>
-            <label>
-                <input type="radio" name="test_type" value="3"
-                    <?php echo ($testType ?? '') === '3' ? 'checked' : ''; ?>>
-                4択形式
-            </label>
-        </div> -->
+        <!-- テスト設定フォーム -->
+        <form method="POST" action="">
+            <div class="form-group">
+                <h2>テストモードを選択してください</h2>
+                <div class="mt-2">
+                    <label class="radio-label">
+                        <input type="radio" name="test_type" value="2"
+                            <?php echo ($testType ?? '') === '2' ? 'checked' : ''; ?>>
+                        <span>単語帳形式</span>
+                    </label>
+                </div>
+                <div class="mt-2">
+                    <label class="radio-label">
+                        <input type="radio" name="test_type" value="4"
+                            <?php echo ($testType ?? '') === '4' ? 'checked' : ''; ?>>
+                        <span>Learn Mode (覚えるモード)</span>
+                    </label>
+                </div>
+            </div>
 
-        <br>
-        <!-- 出題数 -->
-        <div>
-            <label for="limit">出題数:</label><br>
-            <input type="number" id="limit" name="limit"
-                   value="<?php echo isset($_POST['limit']) ? (int)$_POST['limit'] : 5; ?>"
-                   min="1" max="100">
+            <div class="form-group">
+                <label for="limit">出題数:</label>
+                <input type="number" id="limit" name="limit"
+                       value="<?php echo isset($_POST['limit']) ? (int)$_POST['limit'] : 5; ?>"
+                       min="1" max="100">
+            </div>
+
+            <div class="form-group">
+                <label for="language_code">対象言語:</label>
+                <select id="language_code" name="language_code">
+                    <option value="">すべて</option>
+                    <option value="en" <?php echo (isset($_POST['language_code']) && $_POST['language_code'] === 'en') ? 'selected' : ''; ?>>英語</option>
+                    <option value="ja" <?php echo (isset($_POST['language_code']) && $_POST['language_code'] === 'ja') ? 'selected' : ''; ?>>日本語</option>
+                    <option value="vi" <?php echo (isset($_POST['language_code']) && $_POST['language_code'] === 'vi') ? 'selected' : ''; ?>>ベトナム語</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="answer_lang">答えの表示言語:</label>
+                <select id="answer_lang" name="answer_lang">
+                    <option value="">すべて表示</option>
+                    <option value="ja" <?php echo (isset($_POST['answer_lang']) && $_POST['answer_lang'] === 'ja') ? 'selected' : ''; ?>>日本語</option>
+                    <option value="en" <?php echo (isset($_POST['answer_lang']) && $_POST['answer_lang'] === 'en') ? 'selected' : ''; ?>>英語</option>
+                    <option value="vi" <?php echo (isset($_POST['answer_lang']) && $_POST['answer_lang'] === 'vi') ? 'selected' : ''; ?>>ベトナム語</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-3">テスト開始</button>
+        </form>
+
+        <div class="nav-links mt-3">
+            <a href="../index.php">トップに戻る</a>
         </div>
-
-        <br>
-        <!-- 対象言語 (問題の出題言語) -->
-        <div>
-            <label for="language_code">対象言語:</label><br>
-            <select id="language_code" name="language_code">
-                <option value="">すべて</option>
-                <option value="en" <?php echo (isset($_POST['language_code']) && $_POST['language_code'] === 'en') ? 'selected' : ''; ?>>英語</option>
-                <option value="ja" <?php echo (isset($_POST['language_code']) && $_POST['language_code'] === 'ja') ? 'selected' : ''; ?>>日本語</option>
-                <option value="vi" <?php echo (isset($_POST['language_code']) && $_POST['language_code'] === 'vi') ? 'selected' : ''; ?>>ベトナム語</option>
-                <!-- 必要に応じて追加 -->
-            </select>
-        </div>
-
-        <br>
-        <!-- 答えの表示言語(日本語 / 英語 / ベトナム語 など) -->
-        <div>
-            <label for="answer_lang">答えの表示言語:</label><br>
-            <select id="answer_lang" name="answer_lang">
-                <option value="">すべて表示</option>
-                <option value="ja" <?php echo (isset($_POST['answer_lang']) && $_POST['answer_lang'] === 'ja') ? 'selected' : ''; ?>>日本語</option>
-                <option value="en" <?php echo (isset($_POST['answer_lang']) && $_POST['answer_lang'] === 'en') ? 'selected' : ''; ?>>英語</option>
-                <option value="vi" <?php echo (isset($_POST['answer_lang']) && $_POST['answer_lang'] === 'vi') ? 'selected' : ''; ?>>ベトナム語</option>
-                <!-- 必要に応じて追加 -->
-            </select>
-        </div>
-
-        <br>
-        <!-- テスト絞り込みフィルタ -->
-        <!-- <div>
-            <label>
-                <input type="checkbox" name="filter_low_accuracy" value="1"
-                  <?php echo !empty($_POST['filter_low_accuracy']) ? 'checked' : ''; ?>>
-                正答率が低い単語のみ (80%未満 など)
-            </label>
-        </div>
-        <div>
-            <label for="filter_unseen_days">最後のテストから何日以上経った単語のみ:</label><br>
-            <input type="number" id="filter_unseen_days" name="filter_unseen_days"
-                   min="0" max="999" value="<?php echo isset($_POST['filter_unseen_days'])? (int)$_POST['filter_unseen_days']: 0; ?>">
-        </div> -->
-
-        <br>
-        <button type="submit">テスト開始</button>
-    </form>
-
-    <p><a href="../index.php">トップに戻る</a></p>
+    </div>
 </div>
 </body>
 </html>

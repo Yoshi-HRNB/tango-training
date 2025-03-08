@@ -54,75 +54,90 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
   <meta charset="UTF-8">
   <title>単語一覧</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
 <div class="container">
-  <h1>単語一覧</h1>
+  <div class="card">
+    <h1>単語一覧</h1>
 
-  <form method="get" action="">
-    <input type="text" name="search" placeholder="単語や訳を検索"
-           value="<?php echo $searchSanitized; ?>">
+    <form method="get" action="" class="card mb-3">
+      <div class="form-group">
+        <label for="search">検索:</label>
+        <input type="text" id="search" name="search" placeholder="単語や訳を検索"
+               value="<?php echo $searchSanitized; ?>">
+      </div>
 
-    <label for="translation_languages">翻訳言語:</label>
-    <select name="translation_languages[]" id="translation_languages" multiple size="5">
-      <?php foreach ($availableLanguages as $code => $name): ?>
-        <option value="<?php echo htmlspecialchars($code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo in_array($code, $selectedLanguages) ? 'selected' : ''; ?>>
-          <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
+      <div class="form-group">
+        <label for="translation_languages">翻訳言語:</label>
+        <select name="translation_languages[]" id="translation_languages" multiple size="5">
+          <?php foreach ($availableLanguages as $code => $name): ?>
+            <option value="<?php echo htmlspecialchars($code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo in_array($code, $selectedLanguages) ? 'selected' : ''; ?>>
+              <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
 
-    <button type="submit">検索</button>
-    <!-- 全件表示用のリセットボタンを追加 -->
-    <a href="list.php" class="button">リセット</a>
-  </form>
-  <br>
+      <div class="flex gap-2 flex-wrap">
+        <button type="submit" class="btn btn-primary">検索</button>
+        <a href="list.php" class="btn btn-outline">リセット</a>
+      </div>
+    </form>
 
-  <p><a href="add.php">+ 単語を登録</a> | <a href="../index.php">トップへ戻る</a></p>
+    <div class="nav-links">
+      <a href="add.php">単語を登録</a>
+      <a href="../index.php">トップへ戻る</a>
+    </div>
 
-  <table border="1" cellspacing="0" cellpadding="5">
-    <tr>
-      <th>ID</th>
-      <th>言語</th>
-      <th>単語</th>
-      <th>訳</th>
-      <th>ノート</th>
-      <th>作成日時</th>
-      <th>編集</th>
-    </tr>
-    <?php if (!empty($words)): ?>
-      <?php foreach ($words as $w): ?>
+    <table border="0" cellspacing="0" cellpadding="0">
+      <thead>
         <tr>
-          <td><?php echo htmlspecialchars($w['word_id'], ENT_QUOTES, 'UTF-8'); ?></td>
-          <td><?php echo htmlspecialchars($w['language_code'], ENT_QUOTES, 'UTF-8'); ?></td>
-          <td><?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?></td>
-          <td>
-            <?php 
-              if (!empty($w['translations']) && is_array($w['translations'])) {
-                  // 言語ごとに改行して表示
-                  $translatedLines = [];
-                  foreach ($w['translations'] as $langCode => $translation) {
-                      $langName = isset($availableLanguages[$langCode]) ? $availableLanguages[$langCode] : $langCode;
-                      $translatedLines[] = htmlspecialchars($langName, ENT_QUOTES, 'UTF-8') . ': ' . htmlspecialchars($translation, ENT_QUOTES, 'UTF-8');
-                  }
-                  echo implode('<br>', $translatedLines);
-              } else {
-                  echo htmlspecialchars($w['translations'] ?? '-', ENT_QUOTES, 'UTF-8');
-              }
-            ?>
-          </td>
-          <td><?php echo htmlspecialchars($w['note'] ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
-          <td><?php echo htmlspecialchars($w['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
-          <td>
-            <a href="edit.php?id=<?php echo (int)$w['word_id']; ?>">編集</a>
-          </td>
+          <th>ID</th>
+          <th>言語</th>
+          <th>単語</th>
+          <th>訳</th>
+          <th>ノート</th>
+          <th>作成日時</th>
+          <th>操作</th>
         </tr>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <tr><td colspan="7">登録された単語はありません。</td></tr>
-    <?php endif; ?>
-  </table>
+      </thead>
+      <tbody>
+        <?php if (!empty($words)): ?>
+          <?php foreach ($words as $w): ?>
+            <tr>
+              <td data-label="ID"><?php echo htmlspecialchars($w['word_id'], ENT_QUOTES, 'UTF-8'); ?></td>
+              <td data-label="言語"><?php echo htmlspecialchars($w['language_code'], ENT_QUOTES, 'UTF-8'); ?></td>
+              <td data-label="単語"><?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?></td>
+              <td data-label="訳">
+                <?php 
+                  if (!empty($w['translations']) && is_array($w['translations'])) {
+                      // 言語ごとに改行して表示
+                      $translatedLines = [];
+                      foreach ($w['translations'] as $langCode => $translation) {
+                          $langName = isset($availableLanguages[$langCode]) ? $availableLanguages[$langCode] : $langCode;
+                          $translatedLines[] = htmlspecialchars($langName, ENT_QUOTES, 'UTF-8') . ': ' . htmlspecialchars($translation, ENT_QUOTES, 'UTF-8');
+                      }
+                      echo implode('<br>', $translatedLines);
+                  } else {
+                      echo htmlspecialchars($w['translations'] ?? '-', ENT_QUOTES, 'UTF-8');
+                  }
+                ?>
+              </td>
+              <td data-label="ノート"><?php echo htmlspecialchars($w['note'] ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
+              <td data-label="作成日時"><?php echo htmlspecialchars($w['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
+              <td data-label="操作">
+                <a href="edit.php?id=<?php echo (int)$w['word_id']; ?>" class="btn btn-sm btn-primary">編集</a>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <tr><td colspan="7" class="text-center">登録された単語はありません。</td></tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
 </div>
 </body>
 </html>
