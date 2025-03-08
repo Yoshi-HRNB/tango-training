@@ -2,77 +2,270 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>単語抽出・辞書登録</title>
+  <title>単語登録</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    @keyframes highlight-new-item {
+      0% { background-color: #e3f2fd; }
+      50% { background-color: #bbdefb; }
+      100% { background-color: #f0f9ff; }
+    }
+    
+    .message-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    
+    .feedback-message {
+      background-color: #4caf50;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      margin-top: 10px;
+      animation: fade-out 3s forwards;
+    }
+    
+    @keyframes fade-out {
+      0% { opacity: 1; }
+      70% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* タブのスタイル */
+    .tabs {
+      display: flex;
+      list-style: none;
+      padding: 0;
+      margin: 0 0 20px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .tabs li {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-bottom: none;
+      margin-bottom: -1px;
+      background-color: #f8f9fa;
+      border-radius: 5px 5px 0 0;
+      margin-right: 5px;
+    }
+    
+    .tabs li.active {
+      background-color: #fff;
+      border-color: #ddd;
+      border-bottom-color: white;
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 共通設定欄のスタイル */
+    .common-settings {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      border: 1px solid #eee;
+    }
+
+    .settings-title {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <div class="card">
-      <h1>写真から単語追加</h1>
+      <h1>単語登録</h1>
       
       <div class="nav-links mb-3">
-        <a href="add.php">通常の単語登録へ</a>
         <a href="list.php">単語一覧へ</a>
         <a href="../index.php">トップへ戻る</a>
       </div>
+
+      <!-- 共通設定欄 -->
+      <div class="common-settings">
+        <div class="settings-title">共通設定</div>
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label for="sourceLanguage">登録する単語の言語:</label>
+            <select id="sourceLanguage" class="form-control">
+              <option value="英語" selected>英語</option>
+              <option value="ベトナム語">ベトナム語</option>
+              <option value="フランス語">フランス語</option>
+              <option value="ドイツ語">ドイツ語</option>
+              <option value="スペイン語">スペイン語</option>
+            </select>
+          </div>
+          <div class="form-group col-md-6">
+            <label for="targetLanguage">翻訳の言語:</label>
+            <select id="targetLanguage" class="form-control">
+              <option value="日本語" selected>日本語</option>
+              <option value="英語">英語</option>
+              <option value="ベトナム語">ベトナム語</option>
+              <option value="フランス語">フランス語</option>
+              <option value="ドイツ語">ドイツ語</option>
+              <option value="スペイン語">スペイン語</option>
+            </select>
+          </div>
+        </div>
+      </div>
       
-      <!-- ファイル選択パート -->
-      <div class="section card mb-3">
-        <h2>1. ファイルを選択</h2>
-        <div class="form-group">
-          <label for="uploadImage">画像ファイル:</label>
-          <input type="file" id="uploadImage" accept="image/*" class="file-input">
+      <!-- タブナビゲーション -->
+      <ul class="tabs">
+        <li class="tab-link active" data-tab="tab-input">入力して登録</li>
+        <li class="tab-link" data-tab="tab-image">画像から抽出</li>
+      </ul>
+      
+      <!-- 入力して登録タブ -->
+      <div id="tab-input" class="tab-content active">
+        <!-- 抽出結果パート -->
+        <div class="section card mb-3">
+          <h2>1. テキスト入力</h2>
+          <div class="form-group">
+            <textarea id="directInputText" placeholder="登録したいテキストを入力してください" rows="4"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="levelSelect">抽出レベル (1〜10):</label>
+            <select id="levelSelect" class="form-control">
+              <option value="1">レベル 1 (初学者向け)</option>
+              <option value="2">レベル 2 (学習開始4週間)</option>
+              <option value="3">レベル 3 (学習3か月程度)</option>
+              <option value="4">レベル 4 (基本会話)</option>
+              <option value="5" selected>レベル 5 (日常会話)</option>
+              <option value="6">レベル 6 (旅行会話)</option>
+              <option value="7">レベル 7 (複雑な文章)</option>
+              <option value="8">レベル 8 (ビジネス会話)</option>
+              <option value="9">レベル 9 (高レベル)</option>
+              <option value="10">レベル 10 (ネイティブ難度)</option>
+            </select>
+          </div>
+          <button id="directTranslateBtn" class="btn btn-primary">単語を翻訳・抽出</button>
+          <div id="directTranslatedTextArea" class="result-area mt-3" style="display: none;">
+            <h3>翻訳結果</h3>
+            <div id="directTranslatedText" class="p-3 bg-light border rounded"></div>
+          </div>
+          <div id="directResultArea" class="result-area mt-3" style="display: none;">
+            <h3>翻訳・抽出された単語</h3>
+            <div id="directExtractedWords" class="word-list"></div>
+            <button id="directRegisterAllBtn" class="btn btn-success mt-3" style="display: none;">一括登録</button>
+          </div>
         </div>
-        <p class="text-light">※ファイルは自動的にアップロードされます</p>
-        <div id="previewArea" class="mt-2" style="display: none;">
-          <h3>プレビュー</h3>
-          <img id="preview" style="max-width: 100%; max-height: 300px;">
+
+        <!-- 手動追加パート -->
+        <div class="section card mb-3">
+          <h2>2. 手動で単語を追加</h2>
+          <div class="form-group">
+            <label for="directNewWordInput">単語:</label>
+            <input type="text" id="directNewWordInput" placeholder="単語を入力">
+          </div>
+          <div class="form-group">
+            <label for="directNewMeaningInput">意味:</label>
+            <input type="text" id="directNewMeaningInput" placeholder="意味を入力">
+          </div>
+          <div class="form-group">
+            <label for="directNewNoteInput">補足:</label>
+            <input type="text" id="directNewNoteInput" placeholder="補足を入力 (複合語の意味など)">
+          </div>
+          <button id="directAddAndRegisterBtn" class="btn btn-success">追加して登録</button>
         </div>
       </div>
+      
+      <!-- 画像から抽出タブ -->
+      <div id="tab-image" class="tab-content">
+        <!-- ファイル選択パート -->
+        <div class="section card mb-3">
+          <h2>1. ファイルを選択</h2>
+          <div class="form-group">
+            <label for="uploadImage">画像ファイル:</label>
+            <input type="file" id="uploadImage" accept="image/*" class="file-input">
+          </div>
+          <p class="text-light">※ファイルは自動的にアップロードされます</p>
+          <div id="previewArea" class="mt-2" style="display: none;">
+            <h3>プレビュー</h3>
+            <img id="preview" style="max-width: 100%; max-height: 300px;">
+          </div>
+          <button id="extractTextBtn" class="btn btn-primary mt-3">画像からテキスト抽出</button>
+        </div>
 
-      <!-- 抽出結果パート -->
-      <div class="section card mb-3">
-        <h2>2. 抽出結果</h2>
-        <div class="form-group">
-          <textarea id="extractedText" placeholder="画像から抽出されたテキストがここに表示されます" rows="4"></textarea>
+        <!-- 抽出結果パート -->
+        <div class="section card mb-3">
+          <h2>2. 抽出結果</h2>
+          <div class="form-group">
+            <textarea id="extractedText" placeholder="画像から抽出されたテキストがここに表示されます" rows="4"></textarea>
+          </div>
+          <button id="translateBtn" class="btn btn-primary">単語を翻訳・抽出</button>
+          <div id="translatedTextArea" class="result-area mt-3" style="display: none;">
+            <h3>翻訳結果</h3>
+            <div id="translatedText" class="p-3 bg-light border rounded"></div>
+          </div>
+          <div id="resultArea" class="result-area mt-3" style="display: none;">
+            <h3>翻訳・抽出された単語</h3>
+            <div id="extractedWords" class="word-list"></div>
+            <button id="registerAllBtn" class="btn btn-success mt-3" style="display: none;">一括登録</button>
+          </div>
         </div>
-        <button id="translateBtn" class="btn btn-primary">単語を翻訳・抽出</button>
-        <div id="resultArea" class="result-area mt-3" style="display: none;">
-          <h3>翻訳・抽出された単語</h3>
-          <div id="extractedWords" class="word-list"></div>
-        </div>
-      </div>
 
-      <!-- 手動追加パート -->
-      <div class="section card mb-3">
-        <h2>3. 手動で単語を追加</h2>
-        <div class="form-group">
-          <label for="newWordInput">単語:</label>
-          <input type="text" id="newWordInput" placeholder="単語を入力">
+        <!-- 手動追加パート -->
+        <div class="section card mb-3">
+          <h2>3. 手動で単語を追加</h2>
+          <div class="form-group">
+            <label for="newWordInput">単語:</label>
+            <input type="text" id="newWordInput" placeholder="単語を入力">
+          </div>
+          <div class="form-group">
+            <label for="newMeaningInput">意味:</label>
+            <input type="text" id="newMeaningInput" placeholder="意味を入力">
+          </div>
+          <div class="form-group">
+            <label for="newNoteInput">補足:</label>
+            <input type="text" id="newNoteInput" placeholder="補足を入力 (複合語の意味など)">
+          </div>
+          <button id="addAndRegisterBtn" class="btn btn-success">追加して登録</button>
         </div>
-        <div class="form-group">
-          <label for="newMeaningInput">意味:</label>
-          <input type="text" id="newMeaningInput" placeholder="意味を入力">
-        </div>
-        <div class="form-group">
-          <label for="newNoteInput">メモ:</label>
-          <input type="text" id="newNoteInput" placeholder="メモを入力 (任意)">
-        </div>
-        <button id="addWordBtn" class="btn btn-success">単語を追加</button>
-      </div>
-
-      <!-- 登録待ちリスト -->
-      <div class="section card">
-        <h2>4. 登録待ちリスト</h2>
-        <p>下記の単語を「登録」ボタンでデータベースに保存します</p>
-        <ul id="wordsToRegister" class="mt-2"></ul>
       </div>
     </div>
   </div>
 
   <script>
+    // タブ切り替え機能
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabLinks = document.querySelectorAll('.tab-link');
+      
+      tabLinks.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          // すべてのタブからアクティブクラスを削除
+          tabLinks.forEach(t => t.classList.remove('active'));
+          
+          // すべてのタブコンテンツを非表示に
+          document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+          });
+          
+          // クリックされたタブにアクティブクラスを追加
+          this.classList.add('active');
+          
+          // 関連するコンテンツを表示
+          const tabId = this.getAttribute('data-tab');
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+    });
+    
     // 既存のJavaScriptコードはそのまま残す
     // ただし、UIの更新部分を以下のように変更
     
@@ -83,81 +276,485 @@
       
       // 結果エリアを非表示に
       document.getElementById('resultArea').style.display = 'none';
+      document.getElementById('translatedTextArea').style.display = 'none';
     }
     
-    // 抽出された単語リストを表示
-    function displayExtractedWords(words) {
-      const container = document.getElementById('extractedWords');
+    // 抽出された単語リストを表示（共通関数に変更）
+    function displayExtractedWords(words, containerId, registerBtnId) {
+      const container = document.getElementById(containerId);
       container.innerHTML = '';
       
       if (words && words.length > 0) {
+        // 一括登録ボタンを表示
+        document.getElementById(registerBtnId).style.display = 'block';
+        
         words.forEach(word => {
+          // noteフィールドを使用
+          const noteText = word.note || '';
+          
           const div = document.createElement('div');
           div.className = 'word-item';
+          div.dataset.word = word.word;
+          div.dataset.meaning = word.meaning || '';
+          div.dataset.note = noteText;
           div.innerHTML = `
             <h3>${word.word}</h3>
-            <p>${word.meaning || '意味なし'}</p>
-            ${word.note ? `<p class="text-light">${word.note}</p>` : ''}
+            <p><strong>意味:</strong> ${word.meaning || '意味なし'}</p>
+            ${noteText ? `<p class="note-text"><strong>補足:</strong> ${noteText}</p>` : ''}
             <div class="flex gap-2 mt-2">
-              <button class="btn btn-primary btn-sm add-word-btn">追加</button>
+              <button class="btn btn-primary btn-sm register-btn">登録</button>
               <button class="btn btn-danger btn-sm delete-btn">削除</button>
             </div>
           `;
           
-          // 追加ボタンのイベント
-          div.querySelector('.add-word-btn').addEventListener('click', () => {
-            addExtractedWordToPendingList(word.word, word.meaning || '', word.note || '');
+          // 登録ボタンのイベント - 直接DBに登録
+          div.querySelector('.register-btn').addEventListener('click', () => {
+            saveWordToDB(word.word, word.meaning || '', noteText, div, containerId, registerBtnId);
           });
           
           // 削除ボタンのイベント
           div.querySelector('.delete-btn').addEventListener('click', () => {
             div.remove();
+            
+            // 残りの単語がなければ一括登録ボタンを非表示に
+            if (document.querySelectorAll(`#${containerId} .word-item`).length === 0) {
+              document.getElementById(registerBtnId).style.display = 'none';
+            }
           });
           
           container.appendChild(div);
         });
         
-        document.getElementById('resultArea').style.display = 'block';
+        document.getElementById(containerId === 'extractedWords' ? 'resultArea' : 'directResultArea').style.display = 'block';
       } else {
         container.innerHTML = '<p>単語が見つかりませんでした</p>';
-        document.getElementById('resultArea').style.display = 'block';
+        document.getElementById(containerId === 'extractedWords' ? 'resultArea' : 'directResultArea').style.display = 'block';
+        document.getElementById(registerBtnId).style.display = 'none';
       }
     }
-    
-    // 登録待ちリストに単語を追加
-    function addExtractedWordToPendingList(word, meaning, note) {
-      const li = document.createElement('li');
-      li.className = 'word-item';
-      li.innerHTML = `
-        <div class="form-group mb-2">
-          <label>単語:</label>
-          <input type="text" class="word-input" value="${word}" />
-        </div>
-        <div class="form-group mb-2">
-          <label>訳:</label>
-          <input type="text" class="meaning-input" value="${meaning}" placeholder="訳" />
-        </div>
-        <div class="form-group mb-2">
-          <label>補足:</label>
-          <input type="text" class="note-input" value="${note}" placeholder="補足 (任意)" />
-        </div>
-        <button class="register-btn btn btn-primary">登録</button>
-      `;
-      wordsToRegisterUl.appendChild(li);
 
-      // 「登録」ボタン押下時、DBへ保存
-      li.querySelector('.register-btn').addEventListener('click', () => {
-        const w = li.querySelector('.word-input').value.trim();
-        const m = li.querySelector('.meaning-input').value.trim();
-        const n = li.querySelector('.note-input').value.trim();
-
-        if (!w) {
-          alert("単語が空です。");
+    // 「単語を翻訳・抽出」ボタンのイベントリスナー（画像タブ用）
+    document.getElementById('translateBtn').addEventListener('click', function() {
+      const text = document.getElementById('extractedText').value.trim();
+      if (!text) {
+        alert("テキストが入力されていません。");
+        return;
+      }
+      
+      // 選択された言語とレベルを取得
+      const sourceLanguage = document.getElementById('sourceLanguage').value;
+      const targetLanguage = document.getElementById('targetLanguage').value;
+      const level = document.getElementById('levelSelect').value;
+      
+      // フォームデータの作成
+      let formData = new FormData();
+      formData.append('text', text);
+      formData.append('sourceLanguage', sourceLanguage);
+      formData.append('targetLanguage', targetLanguage);
+      formData.append('level', level);
+      
+      // 処理中の表示
+      document.getElementById('translatedText').textContent = "翻訳中...";
+      document.getElementById('translatedTextArea').style.display = 'block';
+      document.getElementById('extractedWords').innerHTML = "<p>単語抽出中...</p>";
+      document.getElementById('resultArea').style.display = 'block';
+      
+      // translate.phpにリクエストを送信
+      fetch('translate.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => {
+        // レスポンスがJSON形式かチェック
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          return res.json();
+        } else {
+          throw new Error('レスポンスがJSON形式ではありません。サーバーエラーが発生している可能性があります。');
+        }
+      })
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
           return;
         }
-        saveWordToDB(w, m, n, li);
+        
+        // 翻訳結果を表示
+        const translatedTextArea = document.getElementById('translatedTextArea');
+        const translatedTextElement = document.getElementById('translatedText');
+        
+        if (data.translated_text) {
+          translatedTextElement.textContent = data.translated_text;
+          translatedTextArea.style.display = 'block';
+        } else {
+          translatedTextElement.textContent = '(翻訳結果なし)';
+          translatedTextArea.style.display = 'block';
+        }
+        
+        // 抽出された単語リストを表示
+        displayExtractedWords(data.extracted_words || [], 'extractedWords', 'registerAllBtn');
+      })
+      .catch(err => {
+        console.error(err);
+        alert("通信エラー: " + err.message);
+      });
+    });
+
+    // 「単語を翻訳・抽出」ボタンのイベントリスナー（入力タブ用）
+    document.getElementById('directTranslateBtn').addEventListener('click', function() {
+      const text = document.getElementById('directInputText').value.trim();
+      if (!text) {
+        alert("テキストが入力されていません。");
+        return;
+      }
+      
+      // 選択された言語とレベルを取得
+      const sourceLanguage = document.getElementById('sourceLanguage').value;
+      const targetLanguage = document.getElementById('targetLanguage').value;
+      const level = document.getElementById('levelSelect').value;
+      
+      // フォームデータの作成
+      let formData = new FormData();
+      formData.append('text', text);
+      formData.append('sourceLanguage', sourceLanguage);
+      formData.append('targetLanguage', targetLanguage);
+      formData.append('level', level);
+      
+      // 処理中の表示
+      document.getElementById('directTranslatedText').textContent = "翻訳中...";
+      document.getElementById('directTranslatedTextArea').style.display = 'block';
+      document.getElementById('directExtractedWords').innerHTML = "<p>単語抽出中...</p>";
+      document.getElementById('directResultArea').style.display = 'block';
+      
+      // translate.phpにリクエストを送信
+      fetch('translate.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => {
+        // レスポンスがJSON形式かチェック
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          return res.json();
+        } else {
+          throw new Error('レスポンスがJSON形式ではありません。サーバーエラーが発生している可能性があります。');
+        }
+      })
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        
+        // 翻訳結果を表示
+        const translatedTextArea = document.getElementById('directTranslatedTextArea');
+        const translatedTextElement = document.getElementById('directTranslatedText');
+        
+        if (data.translated_text) {
+          translatedTextElement.textContent = data.translated_text;
+          translatedTextArea.style.display = 'block';
+        } else {
+          translatedTextElement.textContent = '(翻訳結果なし)';
+          translatedTextArea.style.display = 'block';
+        }
+        
+        // 抽出された単語リストを表示
+        displayExtractedWords(data.extracted_words || [], 'directExtractedWords', 'directRegisterAllBtn');
+      })
+      .catch(err => {
+        console.error(err);
+        alert("通信エラー: " + err.message);
+      });
+    });
+    
+    // 一括登録ボタンのイベントリスナー（画像タブ用）
+    document.getElementById('registerAllBtn').addEventListener('click', function() {
+      registerAllWords('extractedWords', 'registerAllBtn');
+    });
+
+    // 一括登録ボタンのイベントリスナー（入力タブ用）
+    document.getElementById('directRegisterAllBtn').addEventListener('click', function() {
+      registerAllWords('directExtractedWords', 'directRegisterAllBtn');
+    });
+
+    // 一括登録処理の共通関数
+    function registerAllWords(containerId, registerBtnId) {
+      const wordItems = document.querySelectorAll(`#${containerId} .word-item`);
+      if (wordItems.length === 0) {
+        alert("登録する単語がありません。");
+        return;
+      }
+      
+      // 確認メッセージ
+      if (!confirm(`${wordItems.length}個の単語を一括登録します。よろしいですか？`)) {
+        return;
+      }
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      // 進捗表示用
+      const progressMsg = document.createElement('div');
+      progressMsg.className = 'progress-message';
+      progressMsg.textContent = `登録処理中... (0/${wordItems.length})`;
+      document.body.appendChild(progressMsg);
+      
+      const promises = [];
+      
+      // 全ての単語アイテムをループ
+      wordItems.forEach((item, index) => {
+        const word = item.dataset.word;
+        const meaning = item.dataset.meaning;
+        const note = item.dataset.note;
+        
+        if (!word) return;
+        
+        const promise = new Promise((resolve) => {
+          let formData = new FormData();
+          formData.append('word', word);
+          formData.append('meaning', meaning);
+          formData.append('note', note);
+          
+          fetch('save_word.php', {
+            method: 'POST',
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              failCount++;
+              console.error(`登録エラー (${word}): ${data.error}`);
+            } else {
+              successCount++;
+              item.remove();
+            }
+            
+            // 進捗表示更新
+            progressMsg.textContent = `登録処理中... (${successCount + failCount}/${wordItems.length})`;
+            
+            resolve();
+          })
+          .catch(err => {
+            failCount++;
+            console.error(`通信エラー (${word}): ${err.message}`);
+            resolve();
+          });
+        });
+        
+        promises.push(promise);
+      });
+      
+      // 全ての登録処理が完了したら
+      Promise.all(promises).then(() => {
+        // 進捗メッセージを削除
+        progressMsg.remove();
+        
+        // 結果を表示
+        if (failCount === 0) {
+          alert(`${successCount}個の単語をすべて登録しました。`);
+          // 一括登録ボタンを非表示に
+          document.getElementById(registerBtnId).style.display = 'none';
+        } else {
+          alert(`登録結果: 成功=${successCount}個、失敗=${failCount}個`);
+        }
       });
     }
+    
+    // 手動追加ボタンのイベントリスナー - 直接DBに登録（画像タブ用）
+    document.getElementById('addAndRegisterBtn').addEventListener('click', function() {
+      handleManualRegistration('newWordInput', 'newMeaningInput', 'newNoteInput', this);
+    });
+
+    // 手動追加ボタンのイベントリスナー - 直接DBに登録（入力タブ用）
+    document.getElementById('directAddAndRegisterBtn').addEventListener('click', function() {
+      handleManualRegistration('directNewWordInput', 'directNewMeaningInput', 'directNewNoteInput', this);
+    });
+
+    // 手動登録の共通関数
+    function handleManualRegistration(wordInputId, meaningInputId, noteInputId, btnElement) {
+      const word = document.getElementById(wordInputId).value.trim();
+      const meaning = document.getElementById(meaningInputId).value.trim();
+      const note = document.getElementById(noteInputId).value.trim();
+      
+      if (!word) {
+        alert("単語を入力してください");
+        return;
+      }
+      
+      // DB登録処理
+      let formData = new FormData();
+      formData.append('word', word);
+      formData.append('meaning', meaning);
+      formData.append('note', note);
+      
+      // 処理中表示
+      const btn = btnElement;
+      const originalText = btn.textContent;
+      btn.textContent = "登録中...";
+      btn.disabled = true;
+      
+      fetch('save_word.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert("登録エラー: " + data.error);
+        } else {
+          // 成功メッセージ
+          showTemporaryMessage(`「${word}」を登録しました`);
+          
+          // 入力欄をクリア
+          document.getElementById(wordInputId).value = '';
+          document.getElementById(meaningInputId).value = '';
+          document.getElementById(noteInputId).value = '';
+        }
+        
+        // ボタンを元に戻す
+        btn.textContent = originalText;
+        btn.disabled = false;
+      })
+      .catch(err => {
+        console.error(err);
+        alert("通信エラー: " + err.message);
+        
+        // ボタンを元に戻す
+        btn.textContent = originalText;
+        btn.disabled = false;
+      });
+    }
+    
+    // ファイル選択時のプレビュー表示
+    const uploadImage = document.getElementById('uploadImage');
+    const previewArea = document.getElementById('previewArea');
+    const preview = document.getElementById('preview');
+    
+    uploadImage.addEventListener('change', function(e) {
+      if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          previewArea.style.display = 'block';
+        }
+        reader.readAsDataURL(this.files[0]);
+      }
+    });
+    
+    // 「画像からテキスト抽出」ボタンのイベントリスナー
+    document.getElementById('extractTextBtn').addEventListener('click', function() {
+      const fileInput = document.getElementById('uploadImage');
+      if (!fileInput.files || !fileInput.files[0]) {
+        alert("画像ファイルが選択されていません。");
+        return;
+      }
+      
+      // FormDataオブジェクトを作成
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      
+      // プロセス開始を表示
+      document.getElementById('extractedText').value = "テキスト抽出中...";
+      
+      // 画像処理用のPHPスクリプトにリクエストを送信
+      fetch('process.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => {
+        // レスポンスがJSON形式かチェック
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          return res.json();
+        } else {
+          throw new Error('レスポンスがJSON形式ではありません。サーバーエラーが発生している可能性があります。');
+        }
+      })
+      .then(data => {
+        if (data.extractedText) {
+          document.getElementById('extractedText').value = data.extractedText;
+          // 翻訳ボタンを有効化
+          document.getElementById('translateBtn').disabled = false;
+        } else if (data.error) {
+          document.getElementById('extractedText').value = "エラー: " + data.error;
+        } else {
+          document.getElementById('extractedText').value = "予期しないレスポンス形式です";
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('extractedText').value = "通信エラー: " + err.message;
+      });
+    });
+    
+    // DB登録用関数
+    function saveWordToDB(word, meaning, note, divElement, containerId, registerBtnId) {
+      let formData = new FormData();
+      formData.append('word', word);
+      formData.append('meaning', meaning);
+      formData.append('note', note);
+      
+      fetch('save_word.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => {
+        // レスポンスがJSON形式かチェック
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          return res.json();
+        } else {
+          throw new Error('レスポンスがJSON形式ではありません。サーバーエラーが発生している可能性があります。');
+        }
+      })
+      .then(data => {
+        if (data.error) {
+          alert("登録エラー: " + data.error);
+        } else {
+          // 登録完了メッセージ
+          showTemporaryMessage(`「${word}」を登録しました`);
+          
+          // 表示から削除
+          if (divElement) {
+            divElement.remove();
+            
+            // 残りの単語がなければ一括登録ボタンを非表示に
+            if (document.querySelectorAll(`#${containerId} .word-item`).length === 0) {
+              document.getElementById(registerBtnId).style.display = 'none';
+            }
+          }
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("通信エラー: " + err.message);
+      });
+    }
+    
+    // 一時的なメッセージを表示する関数
+    function showTemporaryMessage(message) {
+      // メッセージコンテナがなければ作成
+      let container = document.querySelector('.message-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'message-container';
+        document.body.appendChild(container);
+      }
+      
+      // メッセージ要素を作成
+      const messageEl = document.createElement('div');
+      messageEl.className = 'feedback-message';
+      messageEl.textContent = message;
+      container.appendChild(messageEl);
+      
+      // 一定時間後に削除
+      setTimeout(() => {
+        messageEl.remove();
+      }, 3000);
+    }
   </script>
+  
+  <!-- メッセージ表示用コンテナ -->
+  <div class="message-container"></div>
 </body>
 </html>

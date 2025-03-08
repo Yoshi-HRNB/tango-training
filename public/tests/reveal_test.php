@@ -2,15 +2,112 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>単語帳形式テスト - 再テスト対応</title>
+  <title>フラッシュカード式テスト</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .card-container {
+      perspective: 1000px;
+      margin: 20px auto;
+      max-width: 500px;
+    }
+    .card-flip {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+    .card-flip.is-flipped {
+      transform: rotateY(180deg);
+    }
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .card-front {
+      background-color: #f8f9fa;
+    }
+    .card-back {
+      background-color: #e9ecef;
+      transform: rotateY(180deg);
+    }
+    .progress-bar {
+      background-color: #e9ecef;
+      height: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    .progress-fill {
+      background-color: #4CAF50;
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.3s;
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>フラッシュカード式テスト</h1>
+
+    <div class="card">
+      <div id="progress-container">
+        <div class="progress-bar">
+          <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <p id="progress-text" class="text-center mb-3">0 / 0 問</p>
+      </div>
+      
+      <p class="text-center mb-3">
+        カードをクリックすると裏面(訳)を表示できます。<br>
+        「正解」または「不正解」ボタンを押して次へ進んでください。
+      </p>
+
+      <div id="cards-area"></div>
+      <div id="message" class="alert mt-2" style="display: none;"></div>
+      
+      <div id="result-area" style="display: none;">
+        <div class="alert alert-success">
+          <h3 class="text-center">テスト完了！</h3>
+          <p class="text-center" id="final-score">正解: 0 / 0 問</p>
+        </div>
+        <div class="flex justify-center gap-2 mt-3">
+          <button id="submitBtn" class="btn btn-primary">結果を保存</button>
+          <a href="../index.php" class="btn btn-outline">トップへ戻る</a>
+        </div>
+      </div>
+      
+      <div id="post-submit-area" style="display: none;">
+        <div class="flex justify-center gap-2 mt-3">
+          <button id="retryBtn" style="display: none;" class="btn btn-warning" onclick="doRetryTest()">間違えた単語を再テスト</button>
+          <button id="summaryBtn" style="display: none;" class="btn btn-info" onclick="showSummary()">サマリを見る</button>
+          <a href="../index.php" class="btn btn-outline">トップへ戻る</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let words = [];       // サーバーから取得した問題一覧
     let userChecks = [];  // 各問題に対するユーザの解答(正解=true/不正解=false/未回答=null)
-    let currentPage = 0;  // ページネーション用の現在ページ
-    const pageSize = 5;   // 1ページに表示する問題数
+    let currentIndex = 0; // 現在表示中のカードインデックス
 
     // テスト開始時刻
     const startTime = Date.now();
@@ -35,7 +132,7 @@
           } catch(e) {
             // JSONデコード失敗時
           }
-          document.getElementById('wordContainer').innerText = errorMsg;
+          document.getElementById('cards-area').innerText = errorMsg;
           return;
         }
         // JSONをパース
@@ -46,138 +143,121 @@
 
         // もし問題が0件なら終了
         if (words.length === 0) {
-          document.getElementById('wordContainer').innerText = '問題がありません。';
-          document.getElementById('scoreDisplay').innerText = '';
-          // 「summaryBtn」などを表示するか判断
+          document.getElementById('cards-area').innerText = '問題がありません。';
+          document.getElementById('progress-container').style.display = 'none';
           return;
         }
 
-        // 最初のページを表示
-        renderPage();
+        // プログレスバーの初期化
+        updateProgress();
+
+        // 最初のカードを表示
+        renderCard(currentIndex);
       } catch (err) {
         console.error(err);
-        document.getElementById('wordContainer').innerText = '問題取得エラー: ' + err.message;
+        document.getElementById('cards-area').innerText = '問題取得エラー: ' + err.message;
       }
     }
 
     /**
-     * 現在ページの問題を表示
+     * 現在のカードを表示
      */
-    function renderPage() {
-      const container = document.getElementById('wordContainer');
-      container.innerHTML = '';
-
-      const startIndex = currentPage * pageSize;
-      const endIndex   = Math.min(startIndex + pageSize, words.length);
-
-      if (startIndex >= words.length) {
-        container.innerHTML = '<div class="alert">問題がありません。</div>';
-        document.getElementById('scoreDisplay').innerText = '';
+    function renderCard(index) {
+      // すべてのカードが終了した場合
+      if (index >= words.length) {
+        showResult();
         return;
       }
 
-      for (let i = startIndex; i < endIndex; i++) {
-        const item = words[i];
-        const div = document.createElement('div');
-        div.className = 'word-item mb-3';
+      const item = words[index];
+      const cardHtml = `
+        <div class="card-container">
+          <div class="card-flip" id="flashCard">
+            <div class="card-face card-front">
+              <div class="text-center">
+                <h2>${item.word}</h2>
+                <p class="mb-1">[${item.language_code}]</p>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div>
+                ${item.translations && item.translations.length > 0 
+                  ? item.translations.map(t => `<p>${t.translation} [${t.language_code}]</p>`).join('')
+                  : '<p>訳なし</p>'
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="button-container">
+          <button onclick="markCorrect(${index})" class="btn btn-success">正解</button>
+          <button onclick="markWrong(${index})" class="btn btn-danger">不正解</button>
+        </div>
+      `;
+      document.getElementById('cards-area').innerHTML = cardHtml;
+      document.getElementById('message').style.display = 'none'; // メッセージ消去
 
-        // (1) 単語表示
-        const q = document.createElement('h3');
-        q.innerText = `${i+1}. ${item.word} [${item.language_code}]`;
-        div.appendChild(q);
+      // カードクリックで裏表を反転
+      const cardEl = document.getElementById('flashCard');
+      cardEl.addEventListener('click', () => {
+        cardEl.classList.toggle('is-flipped');
+      });
 
-        // (2)'正解欄'を作成（初めはプレースホルダーを表示）
-        const ansDiv = document.createElement('div');
-        ansDiv.className = 'card-face card-front mt-2';
-        ansDiv.innerText = '正解欄（タップして表示）';
-        ansDiv.style.cursor = 'pointer';
-
-        // タップ時に答えを表示／隠す処理
-        ansDiv.onclick = () => {
-          if (ansDiv.classList.contains('card-front')) {
-            // 表示状態に切替：実際の訳を表示
-            if (item.translations && item.translations.length > 0) {
-              ansDiv.innerText = '訳: ' + item.translations
-                .map(t => `${t.translation} [${t.language_code}]`)
-                .join(', ');
-            } else {
-              ansDiv.innerText = '訳: なし';
-            }
-            ansDiv.classList.remove('card-front');
-            ansDiv.classList.add('card-back');
-          } else {
-            // 再度隠す（プレースホルダーに戻す）
-            ansDiv.innerText = '正解欄（タップして表示）';
-            ansDiv.classList.remove('card-back');
-            ansDiv.classList.add('card-front');
-          }
-        };
-        div.appendChild(ansDiv);
-
-        // (4) 正解/不正解ボタン
-        const btnContainer = document.createElement('div');
-        btnContainer.className = 'flex gap-2 mt-2';
-        
-        const correctBtn = document.createElement('button');
-        correctBtn.innerText = '正解';
-        correctBtn.className = 'btn btn-success';
-        correctBtn.onclick = () => {
-          userChecks[i] = true;
-          updateScore();
-        };
-
-        const wrongBtn = document.createElement('button');
-        wrongBtn.innerText = '不正解';
-        wrongBtn.className = 'btn btn-danger';
-        wrongBtn.onclick = () => {
-          userChecks[i] = false;
-          updateScore();
-        };
-
-        btnContainer.appendChild(correctBtn);
-        btnContainer.appendChild(wrongBtn);
-        div.appendChild(btnContainer);
-
-        // 要素をコンテナに追加
-        container.appendChild(div);
-      }
-
-      // スコア表示を更新 & ページ切替ボタンの状態更新
-      updateScore();
-      updatePaginationButtons();
+      // プログレスバーを更新
+      updateProgress();
     }
 
     /**
-     * スコア(正解数など)を更新
+     * 「正解」を押したときの処理
      */
-    function updateScore() {
+    function markCorrect(idx) {
+      userChecks[idx] = true;
+      currentIndex++;
+      // 次のカードを表示する前にプログレスバーを更新
+      updateProgress(true);
+      renderCard(currentIndex);
+    }
+
+    /**
+     * 「不正解」を押したときの処理
+     */
+    function markWrong(idx) {
+      userChecks[idx] = false;
+      currentIndex++;
+      // 次のカードを表示する前にプログレスバーを更新
+      updateProgress(true);
+      renderCard(currentIndex);
+    }
+
+    /**
+     * プログレスバーを更新
+     * @param {boolean} includeCurrentCard 現在のカードを含めるかどうか
+     */
+    function updateProgress(includeCurrentCard = false) {
+      const total = words.length;
+      // includeCurrentCardがtrueの場合、currentIndexをそのまま使用
+      // falseの場合は、まだ答えていないので-1する
+      const current = includeCurrentCard ? currentIndex : (currentIndex > 0 ? currentIndex : 0);
+      const percentage = total > 0 ? (current / total) * 100 : 0;
+      
+      document.getElementById('progress-fill').style.width = `${percentage}%`;
+      document.getElementById('progress-text').textContent = `${current} / ${total} 問`;
+    }
+
+    /**
+     * テスト結果を表示
+     */
+    function showResult() {
+      document.getElementById('cards-area').innerHTML = '';
+      document.getElementById('result-area').style.display = 'block';
+      
       const totalAnswered = userChecks.filter(x => x !== null).length;
       const totalCorrect = userChecks.filter(x => x === true).length;
-      document.getElementById('scoreDisplay').innerText =
-        `正解数: ${totalCorrect} / ${totalAnswered} (全${words.length}問)`;
-    }
-
-    /**
-     * ページングボタンのON/OFF
-     */
-    function updatePaginationButtons() {
-      document.getElementById('prevBtn').disabled = (currentPage === 0);
-      document.getElementById('nextBtn').disabled = ((currentPage + 1) * pageSize >= words.length);
-    }
-
-    // 前ページ
-    function prevPage() {
-      if (currentPage > 0) {
-        currentPage--;
-        renderPage();
-      }
-    }
-    // 次ページ
-    function nextPage() {
-      if ((currentPage + 1) * pageSize < words.length) {
-        currentPage++;
-        renderPage();
-      }
+      document.getElementById('final-score').innerText = 
+        `正解: ${totalCorrect} / ${totalAnswered} 問 (${Math.round(totalCorrect/totalAnswered*100)}%)`;
+      
+      // 送信ボタンのイベントリスナー
+      document.getElementById('submitBtn').addEventListener('click', submitTest);
     }
 
     /**
@@ -188,13 +268,6 @@
       const timeSpent = Math.floor((endTime - startTime) / 1000);
 
       try {
-        // デバッグ用: 送信前のデータをコンソールに表示
-        console.log('Sending data:', JSON.stringify({
-          words,
-          userChecks,
-          timeSpent
-        }));
-
         const res = await fetch('submit_test_results.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -204,9 +277,6 @@
             timeSpent
           })
         });
-
-        // デバッグ用: レスポンスのステータスコードを確認
-        console.log('Response status:', res.status);
 
         if (!res.ok) {
           // サーバー側でエラーが発生した場合
@@ -222,12 +292,12 @@
         }
 
         const data = await res.json();
-        console.log('Received data:', data); // デバッグ用
 
         if (data.success) {
-          // 成功メッセージ
-          alert('テスト結果を保存しました。');
-
+          // 結果エリアを隠し、送信後エリアを表示
+          document.getElementById('result-area').style.display = 'none';
+          document.getElementById('post-submit-area').style.display = 'block';
+          
           // 間違いがあるかどうか
           if (data.has_wrong_words) {
             // 間違い再テストボタン表示
@@ -272,30 +342,5 @@
       window.location.href = 'test_summary.php';
     }
   </script>
-</head>
-<body>
-  <div class="container">
-    <div class="card">
-      <h1>単語帳形式テスト</h1>
-      <p id="scoreDisplay" class="text-center mb-3">読み込み中...</p>
-
-      <div id="wordContainer" class="mb-3">読み込み中...</div>
-
-      <div class="flex justify-center gap-2 mb-3">
-        <button id="prevBtn" onclick="prevPage()" class="btn btn-outline">前へ</button>
-        <button id="nextBtn" onclick="nextPage()" class="btn btn-primary">次へ</button>
-      </div>
-
-      <div class="mt-3">
-        <button onclick="submitTest()" class="btn btn-success">テストを終了して結果を保存</button>
-        <button id="retryBtn" style="display:none;" onclick="doRetryTest()" class="btn btn-primary mt-2">間違い再テスト</button>
-        <button id="summaryBtn" style="display:none;" onclick="showSummary()" class="btn btn-outline mt-2">最終結果を見る</button>
-      </div>
-
-      <div class="nav-links mt-3">
-        <a href="../index.php">トップへ戻る</a>
-      </div>
-    </div>
-  </div>
 </body>
 </html>

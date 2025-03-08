@@ -87,7 +87,7 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
     </form>
 
     <div class="nav-links">
-      <a href="add.php">単語を登録</a>
+      <a href="add_from_picture.php">単語を登録</a>
       <a href="../index.php">トップへ戻る</a>
     </div>
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * create.php
- * add.php のフォームから受け取り、DBにINSERTする。
+ * add_from_picture.php のフォームから受け取り、DBにINSERTする。
  */
 session_start();
 if (!isset($_SESSION['user_id'])) {
