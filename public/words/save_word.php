@@ -15,9 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 require_once __DIR__ . '/../../src/Database.php';
 require_once __DIR__ . '/../../src/WordController.php';
+require_once __DIR__ . '/../../src/LanguageCode.php';
 
 use TangoTraining\Database;
 use TangoTraining\WordController;
+use TangoTraining\LanguageCode;
 
 // （ユーザーID）本来はセッションなどから取得する想定
 // デモ用に仮で 1 にしておきます
@@ -28,7 +30,14 @@ $word          = isset($_POST['word']) ? trim($_POST['word']) : '';
 $meaning       = isset($_POST['meaning']) ? trim($_POST['meaning']) : '';
 $note          = isset($_POST['note']) ? trim($_POST['note']) : '';
 $part_of_speech = isset($_POST['part_of_speech']) ? trim($_POST['part_of_speech']) : '';
-$language_code = isset($_POST['language_code']) ? trim($_POST['language_code']) : 'vi';
+
+// 言語コードを取得（デフォルトはベトナム語）
+$language_code = isset($_POST['language_code']) ? trim($_POST['language_code']) : LanguageCode::VIETNAMESE;
+
+// 言語コードが表示名として送信された場合は、コードに変換
+if (isset($_POST['language_code']) && !in_array($_POST['language_code'], LanguageCode::getAllCodes())) {
+    $language_code = LanguageCode::getCodeFromName($_POST['language_code']);
+}
 
 if (!$word) {
     echo json_encode(['error' => '単語が未入力です。']);
@@ -65,7 +74,7 @@ try {
         // 例: meaning を日本語だと仮定して language_code='ja' で保存する等
         // 実際はUIでユーザーに選ばせるなど要件次第
         $translations[] = [
-            'language_code' => 'ja',
+            'language_code' => LanguageCode::JAPANESE,
             'translation'   => $meaning
         ];
     }

@@ -4,6 +4,9 @@ ini_set('display_errors', 1);
 
 header('Content-Type: application/json; charset=UTF-8');
 
+require_once __DIR__ . '/../../src/LanguageCode.php';
+use TangoTraining\LanguageCode;
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['error' => 'Invalid request method.']);
     exit;
@@ -28,7 +31,7 @@ $levelDescription = [
 ];
 
 $apiKey = "AIzaSyDEOFn-7w_hlqJn8hQFe9oHfciqoIgeJI4";  
-$apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key={$apiKey}";
+$apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={$apiKey}";
 
 $prompt = "
 以下の {$language} の文章を{$targetLanguage}に翻訳し、指定されたレベル(1〜5)に応じた単語を、熟語ごとに抽出してください。

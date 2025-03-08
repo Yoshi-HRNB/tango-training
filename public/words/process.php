@@ -5,12 +5,15 @@ ini_set('log_errors', 1);
 // ini_set('error_log', __DIR__ . 'php-error.log');
 
 require '/home/portfolio-t/www/tango_training/vendor/autoload.php';
-putenv('GOOGLE_APPLICATION_CREDENTIALS=/home/portfolio-t/www/tango_training/config/tango-training-bd31c1cc872c.json');
+require_once __DIR__ . '/../../src/LanguageCode.php';
 
+use TangoTraining\LanguageCode;
 use Google\Cloud\Vision\V1\ImageAnnotatorClient;
 use Google\Cloud\Vision\V1\Feature;
 use Google\Cloud\Vision\V1\Feature\Type;
 use Google\Cloud\Vision\V1\ImageContext;
+
+putenv('GOOGLE_APPLICATION_CREDENTIALS=/home/portfolio-t/www/tango_training/config/tango-training-bd31c1cc872c.json');
 
 header('Content-Type: application/json');
 
@@ -24,9 +27,8 @@ if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-$targetLanguage = isset($_POST['language']) ? $_POST['language'] : 'en';
-$allowedLanguages = ['en', 'es', 'fr', 'de', 'zh', 'ja', 'vi'];
-if (!in_array($targetLanguage, $allowedLanguages)) {
+$targetLanguage = isset($_POST['language']) ? $_POST['language'] : LanguageCode::ENGLISH;
+if (!in_array($targetLanguage, LanguageCode::getAllCodes())) {
     echo json_encode(['error' => '無効な言語が選択されました。']);
     exit;
 }

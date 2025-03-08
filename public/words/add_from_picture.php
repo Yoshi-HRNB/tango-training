@@ -107,6 +107,10 @@
   </style>
 </head>
 <body>
+<?php
+require_once __DIR__ . '/../../src/LanguageCode.php';
+use TangoTraining\LanguageCode;
+?>
   <div class="container">
     <div class="card">
       <h1>単語登録</h1>
@@ -123,23 +127,17 @@
           <div class="form-group col-md-6">
             <label for="sourceLanguage">登録する単語の言語:</label>
             <select id="sourceLanguage" class="form-control">
-              <option value="英語" selected>英語</option>
-              <option value="ベトナム語">ベトナム語</option>
-              <option value="日本語">日本語</option>
-              <option value="フランス語">フランス語</option>
-              <option value="ドイツ語">ドイツ語</option>
-              <option value="スペイン語">スペイン語</option>
+              <?php foreach (LanguageCode::getLanguageMap() as $code => $name): ?>
+              <option value="<?= htmlspecialchars($name) ?>"<?= $name === '英語' ? ' selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
           <div class="form-group col-md-6">
             <label for="targetLanguage">翻訳の言語:</label>
             <select id="targetLanguage" class="form-control">
-              <option value="日本語" selected>日本語</option>
-              <option value="英語">英語</option>
-              <option value="ベトナム語">ベトナム語</option>
-              <option value="フランス語">フランス語</option>
-              <option value="ドイツ語">ドイツ語</option>
-              <option value="スペイン語">スペイン語</option>
+              <?php foreach (LanguageCode::getLanguageMap() as $code => $name): ?>
+              <option value="<?= htmlspecialchars($name) ?>"<?= $name === '日本語' ? ' selected' : '' ?>><?= htmlspecialchars($name) ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
         </div>
@@ -265,6 +263,9 @@
   </div>
 
   <script>
+    // 言語コード定義
+    <?= LanguageCode::getJavaScriptDefinition() ?>
+    
     // タブ切り替え機能
     document.addEventListener('DOMContentLoaded', function() {
       const tabLinks = document.querySelectorAll('.tab-link');
@@ -787,9 +788,16 @@
         return;
       }
       
+      // 選択された言語を取得
+      const sourceLanguage = document.getElementById('sourceLanguage').value;
+      
+      // 表示名から言語コードを取得
+      const languageCode = LanguageCode.getCodeFromName(sourceLanguage);
+      
       // FormDataオブジェクトを作成
       const formData = new FormData();
       formData.append('image', fileInput.files[0]);
+      formData.append('language', languageCode);
       
       // プロセス開始を表示
       document.getElementById('extractedText').value = "テキスト抽出中...";
