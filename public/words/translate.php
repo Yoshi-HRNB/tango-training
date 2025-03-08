@@ -34,12 +34,23 @@ $apiKey = "AIzaSyDEOFn-7w_hlqJn8hQFe9oHfciqoIgeJI4";
 $apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={$apiKey}";
 
 $prompt = "
-以下の {$language} の文章を{$targetLanguage}に翻訳し、指定されたレベル(1〜5)に応じた単語を、熟語ごとに抽出してください。
+以下の {$language} の文章を{$targetLanguage}に翻訳し、指定されたレベル(1〜5)に応じた{$language}の単語を、熟語ごとに抽出してください。
 アラビア数字の抽出は不要。抽出する単語の単位は熟語を優先してください。
 複合語の場合は、意味を分けて、noteに表示してください。
 低いレベルでは抽出する単語の量を多くし、高いレベルでは難易度の高い単語のみを抽出してください。
 各単語の品詞（名詞、動詞、形容詞など）も「part_of_speech」フィールドに出力してください。
 品詞の言語は、{$targetLanguage}で出力してください。
+注意: 単語のwordフィールドには必ず{$language}の単語を出力してください。
+";
+
+// 日本語の場合はフリガナ（reading）を追加するよう指示
+if ($language === '日本語') {
+    $prompt .= "
+また、抽出された単語が日本語の場合は、「reading」フィールドにフリガナ（カタカナ）も追加してください。
+";
+}
+
+$prompt .= "
 結果は必ず以下の JSON 形式のみで出力してください（meaningも必ず出力）。
 
 余計な説明文やテキストは含めないでください。
@@ -49,15 +60,31 @@ $prompt = "
   \"translated_text\": \"（翻訳された文章）\",
   \"extracted_words\": [
     {
-      \"word\": \"（単語）\",
+      \"word\": \"（{$language}の単語）\",";
+
+// 日本語の場合はreading（フリガナ）のフィールドを追加
+if ($language === '日本語') {
+    $prompt .= "
+      \"reading\": \"（フリガナ）\",";
+}
+
+$prompt .= "
       \"part_of_speech\": \"（品詞）\",
-      \"meaning\": \"（意味）\",
+      \"meaning\": \"（{$targetLanguage}での意味）\",
       \"note\": \"（補足、複合語の場合は分解して意味を表示）\"
     },
     {
-      \"word\": \"（単語）\",
+      \"word\": \"（{$language}の単語）\",";
+
+// 日本語の場合はreading（フリガナ）のフィールドを追加
+if ($language === '日本語') {
+    $prompt .= "
+      \"reading\": \"（フリガナ）\",";
+}
+
+$prompt .= "
       \"part_of_speech\": \"（品詞）\",
-      \"meaning\": \"（意味）\",
+      \"meaning\": \"（{$targetLanguage}での意味）\",
       \"note\": \"（補足、複合語の場合は分解して意味を表示）\"
     }
   ]
@@ -132,12 +159,19 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 // 抽出された単語に必要なフィールドが含まれていることを確認
 $extracted_words = [];
 foreach ($jsonOutput["extracted_words"] ?? [] as $word) {
-    $extracted_words[] = [
+    $wordData = [
         "word" => $word["word"] ?? "",
         "part_of_speech" => $word["part_of_speech"] ?? "",
         "meaning" => $word["meaning"] ?? "",
         "note" => $word["note"] ?? ""
     ];
+    
+    // 日本語の場合はreadingを追加
+    if ($language === '日本語' && isset($word["reading"])) {
+        $wordData["reading"] = $word["reading"];
+    }
+    
+    $extracted_words[] = $wordData;
 }
 
 echo json_encode([

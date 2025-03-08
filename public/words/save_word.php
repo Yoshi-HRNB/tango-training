@@ -30,14 +30,27 @@ $word          = isset($_POST['word']) ? trim($_POST['word']) : '';
 $meaning       = isset($_POST['meaning']) ? trim($_POST['meaning']) : '';
 $note          = isset($_POST['note']) ? trim($_POST['note']) : '';
 $part_of_speech = isset($_POST['part_of_speech']) ? trim($_POST['part_of_speech']) : '';
+$reading       = isset($_POST['reading']) ? trim($_POST['reading']) : null;
 
-// 言語コードを取得（デフォルトはベトナム語）
-$language_code = isset($_POST['language_code']) ? trim($_POST['language_code']) : LanguageCode::VIETNAMESE;
+// フォームから送信されたソース言語とターゲット言語を取得
+$sourceLanguage = isset($_POST['sourceLanguage']) ? trim($_POST['sourceLanguage']) : '英語';
+$targetLanguage = isset($_POST['targetLanguage']) ? trim($_POST['targetLanguage']) : '日本語';
 
-// 言語コードが表示名として送信された場合は、コードに変換
-if (isset($_POST['language_code']) && !in_array($_POST['language_code'], LanguageCode::getAllCodes())) {
-    $language_code = LanguageCode::getCodeFromName($_POST['language_code']);
+// ソース言語のコードを取得（wordの言語）
+$language_code = LanguageCode::getCodeFromName($sourceLanguage);
+
+// 言語コードが直接指定された場合はそれを優先
+if (isset($_POST['language_code']) && trim($_POST['language_code']) !== '') {
+    // 言語コードが表示名として送信された場合は、コードに変換
+    if (!in_array($_POST['language_code'], LanguageCode::getAllCodes())) {
+        $language_code = LanguageCode::getCodeFromName($_POST['language_code']);
+    } else {
+        $language_code = trim($_POST['language_code']);
+    }
 }
+
+// ターゲット言語（翻訳先言語）のコードを取得
+$target_language_code = LanguageCode::getCodeFromName($targetLanguage);
 
 if (!$word) {
     echo json_encode(['error' => '単語が未入力です。']);
@@ -67,19 +80,19 @@ try {
     }
 
     // --- DBに登録 ---
-    // WordController::createWord($user_id, $language_code, $word, $note, $part_of_speech, $translations)
+    // WordController::createWord($user_id, $language_code, $word, $note, $part_of_speech, $translations, $reading)
     // translations は配列で渡す
     $translations = [];
     if ($meaning) {
-        // 例: meaning を日本語だと仮定して language_code='ja' で保存する等
-        // 実際はUIでユーザーに選ばせるなど要件次第
+        // 翻訳を登録 - ターゲット言語コードを使用
         $translations[] = [
-            'language_code' => LanguageCode::JAPANESE,
+            'language_code' => $target_language_code,
             'translation'   => $meaning
         ];
     }
 
-    $result = $wc->createWord($user_id, $language_code, $word, $note, $part_of_speech, $translations);
+    // 読みを渡す（言語に関わらず）
+    $result = $wc->createWord($user_id, $language_code, $word, $note, $part_of_speech, $translations, $reading);
     if (!$result) {
         echo json_encode(['error' => 'DB登録に失敗しました。']);
         exit;

@@ -184,23 +184,45 @@ class WordController
      * @param string|null $note 補足情報
      * @param string|null $part_of_speech 品詞情報
      * @param array $translations 翻訳の配列（各要素は ['language_code' => ..., 'translation' => ...]）
+     * @param string|null $reading 読み仮名（オプション）
      * @return bool 成功した場合は true、それ以外は false
      */
-    public function createWord(int $user_id, string $language_code, string $word, ?string $note, ?string $part_of_speech = null, array $translations): bool
+    public function createWord(int $user_id, string $language_code, string $word, ?string $note, ?string $part_of_speech = null, array $translations, ?string $reading = null): bool
     {
         try {
             $this->pdo->beginTransaction();
 
             // words テーブルに挿入
-            $stmt = $this->pdo->prepare('
-                INSERT INTO words (user_id, language_code, word, part_of_speech, note, created_at, updated_at)
-                VALUES (:user_id, :language_code, :word, :part_of_speech, :note, NOW(), NOW())
-            ');
+            $sql = '
+                INSERT INTO words (user_id, language_code, word, part_of_speech, note';
+            
+            // readingカラムが存在する場合は追加
+            if ($reading !== null) {
+                $sql .= ', reading';
+            }
+            
+            $sql .= ', created_at, updated_at)
+                VALUES (:user_id, :language_code, :word, :part_of_speech, :note';
+            
+            // readingパラメータが存在する場合は追加
+            if ($reading !== null) {
+                $sql .= ', :reading';
+            }
+            
+            $sql .= ', NOW(), NOW())';
+            
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':user_id', $user_id, PDO::PARAM_INT);
             $stmt->bindValue(':language_code', $language_code);
             $stmt->bindValue(':word', $word);
             $stmt->bindValue(':part_of_speech', $part_of_speech);
             $stmt->bindValue(':note', $note);
+            
+            // readingパラメータが存在する場合はバインド
+            if ($reading !== null) {
+                $stmt->bindValue(':reading', $reading);
+            }
+            
             $stmt->execute();
 
             // 挿入した単語の ID を取得
@@ -289,31 +311,55 @@ class WordController
     }
 
     /**
-     * 単語を更新する
+     * 単語情報を更新する
      * @param int $word_id
      * @param int $user_id
      * @param string $language_code
      * @param string $word
      * @param string|null $note
+     * @param string|null $part_of_speech
+     * @param string|null $reading
      * @return bool
      */
-    public function updateWord(int $word_id, int $user_id, string $language_code, string $word, ?string $note = null): bool
+    public function updateWord(int $word_id, int $user_id, string $language_code, string $word, ?string $note = null, ?string $part_of_speech = null, ?string $reading = null): bool
     {
         try {
-            $stmt = $this->pdo->prepare('
+            $sql = '
                 UPDATE words
                 SET user_id = :user_id,
                     language_code = :language_code,
                     word = :word,
-                    note = :note,
+                    note = :note';
+            
+            if ($part_of_speech !== null) {
+                $sql .= ',
+                    part_of_speech = :part_of_speech';
+            }
+            
+            if ($reading !== null) {
+                $sql .= ',
+                    reading = :reading';
+            }
+            
+            $sql .= ',
                     updated_at = NOW()
-                WHERE word_id = :word_id
-            ');
+                WHERE word_id = :word_id';
+            
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':word_id', $word_id, PDO::PARAM_INT);
             $stmt->bindValue(':user_id', $user_id, PDO::PARAM_INT);
             $stmt->bindValue(':language_code', $language_code);
             $stmt->bindValue(':word', $word);
             $stmt->bindValue(':note', $note);
+            
+            if ($part_of_speech !== null) {
+                $stmt->bindValue(':part_of_speech', $part_of_speech);
+            }
+            
+            if ($reading !== null) {
+                $stmt->bindValue(':reading', $reading);
+            }
+            
             return $stmt->execute();
         } catch (PDOException $e) {
             error_log('updateWord Error: ' . $e->getMessage());

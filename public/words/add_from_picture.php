@@ -288,6 +288,23 @@ use TangoTraining\LanguageCode;
           document.getElementById(tabId).classList.add('active');
         });
       });
+      
+      // 初期表示時にフォームを1つ追加
+      const wordFormContainer = document.getElementById('word-form-container');
+      wordFormContainer.innerHTML = createWordInputForm(1);
+      
+      // 言語が変更されたときにフリガナフィールドの表示/非表示を切り替える
+      const sourceLanguageSelect = document.getElementById('sourceLanguage');
+      function updateReadingFieldVisibility() {
+        const isJapanese = sourceLanguageSelect.value === '日本語';
+        document.querySelectorAll('.reading-field').forEach(field => {
+          field.style.display = isJapanese ? 'block' : 'none';
+        });
+      }
+      
+      // 初期表示時と言語変更時に実行
+      updateReadingFieldVisibility();
+      sourceLanguageSelect.addEventListener('change', updateReadingFieldVisibility);
     });
     
     // 既存のJavaScriptコードはそのまま残す
@@ -308,6 +325,9 @@ use TangoTraining\LanguageCode;
       const container = document.getElementById(containerId);
       container.innerHTML = '';
       
+      // ソース言語が日本語かどうかを確認
+      const isJapanese = document.getElementById('sourceLanguage').value === '日本語';
+      
       if (words && words.length > 0) {
         // 一括登録ボタンを表示
         document.getElementById(registerBtnId).style.display = 'block';
@@ -316,6 +336,7 @@ use TangoTraining\LanguageCode;
           // noteフィールドを使用
           const noteText = word.note || '';
           const partOfSpeech = word.part_of_speech || '';
+          const reading = word.reading || '';
           
           const div = document.createElement('div');
           div.className = 'word-item';
@@ -323,9 +344,14 @@ use TangoTraining\LanguageCode;
           div.dataset.meaning = word.meaning || '';
           div.dataset.note = noteText;
           div.dataset.partOfSpeech = partOfSpeech;
+          if (isJapanese && reading) {
+            div.dataset.reading = reading;
+          }
+          
           div.innerHTML = `
             <div class="view-mode">
               <h3>${word.word}</h3>
+              ${isJapanese && reading ? `<p><strong>フリガナ:</strong> ${reading}</p>` : ''}
               ${partOfSpeech ? `<p><strong>品詞:</strong> ${partOfSpeech}</p>` : ''}
               <p><strong>意味:</strong> ${word.meaning || '意味なし'}</p>
               ${noteText ? `<p class="note-text"><strong>補足:</strong> ${noteText}</p>` : ''}
@@ -340,6 +366,11 @@ use TangoTraining\LanguageCode;
                 <label>単語:</label>
                 <input type="text" class="form-control edit-word" value="${word.word}">
               </div>
+              ${isJapanese ? `
+              <div class="form-group">
+                <label>フリガナ:</label>
+                <input type="text" class="form-control edit-reading" value="${reading}">
+              </div>` : ''}
               <div class="form-group">
                 <label>品詞:</label>
                 <input type="text" class="form-control edit-part-of-speech" value="${partOfSpeech}">
@@ -353,18 +384,20 @@ use TangoTraining\LanguageCode;
                 <input type="text" class="form-control edit-note" value="${noteText}">
               </div>
               <div class="flex gap-2 mt-2">
-                <button class="btn btn-success btn-sm save-btn">保存</button>
+                <button class="btn btn-primary btn-sm save-btn">保存</button>
                 <button class="btn btn-secondary btn-sm cancel-btn">キャンセル</button>
               </div>
             </div>
           `;
           
+          container.appendChild(div);
+
           // 編集ボタンのイベント
           div.querySelector('.edit-btn').addEventListener('click', () => {
             div.querySelector('.view-mode').style.display = 'none';
             div.querySelector('.edit-mode').style.display = 'block';
           });
-          
+
           // 保存ボタンのイベント
           div.querySelector('.save-btn').addEventListener('click', () => {
             // 編集した値を取得
@@ -372,6 +405,14 @@ use TangoTraining\LanguageCode;
             const newPartOfSpeech = div.querySelector('.edit-part-of-speech').value.trim();
             const newMeaning = div.querySelector('.edit-meaning').value.trim();
             const newNote = div.querySelector('.edit-note').value.trim();
+            // 日本語の場合はフリガナも取得
+            let newReading = '';
+            if (isJapanese) {
+              const readingInput = div.querySelector('.edit-reading');
+              if (readingInput) {
+                newReading = readingInput.value.trim();
+              }
+            }
             
             if (!newWord) {
               alert('単語を入力してください');
@@ -383,12 +424,33 @@ use TangoTraining\LanguageCode;
             div.dataset.partOfSpeech = newPartOfSpeech;
             div.dataset.meaning = newMeaning;
             div.dataset.note = newNote;
+            if (isJapanese) {
+              div.dataset.reading = newReading;
+            }
             
             // ビューモードの内容を更新
             div.querySelector('.view-mode h3').textContent = newWord;
             
+            // フリガナの表示を更新（日本語の場合）
+            if (isJapanese) {
+              let readingElement = div.querySelector('.view-mode p:first-of-type');
+              if (readingElement && readingElement.innerHTML.includes('フリガナ:')) {
+                if (newReading) {
+                  readingElement.innerHTML = `<strong>フリガナ:</strong> ${newReading}`;
+                } else {
+                  readingElement.remove();
+                  readingElement = null;
+                }
+              } else if (newReading) {
+                readingElement = document.createElement('p');
+                readingElement.innerHTML = `<strong>フリガナ:</strong> ${newReading}`;
+                div.querySelector('.view-mode h3').after(readingElement);
+              }
+            }
+            
             // 品詞の表示を更新
-            let partOfSpeechElement = div.querySelector('.view-mode p:first-of-type');
+            const startIndex = isJapanese ? (div.dataset.reading ? 2 : 1) : 1;
+            let partOfSpeechElement = div.querySelector(`.view-mode p:nth-of-type(${startIndex})`);
             if (partOfSpeechElement && partOfSpeechElement.innerHTML.includes('品詞:')) {
               if (newPartOfSpeech) {
                 partOfSpeechElement.innerHTML = `<strong>品詞:</strong> ${newPartOfSpeech}`;
@@ -399,15 +461,26 @@ use TangoTraining\LanguageCode;
             } else if (newPartOfSpeech) {
               partOfSpeechElement = document.createElement('p');
               partOfSpeechElement.innerHTML = `<strong>品詞:</strong> ${newPartOfSpeech}`;
-              div.querySelector('.view-mode h3').after(partOfSpeechElement);
+              if (isJapanese && div.dataset.reading) {
+                div.querySelector('.view-mode p:first-of-type').after(partOfSpeechElement);
+              } else {
+                div.querySelector('.view-mode h3').after(partOfSpeechElement);
+              }
             }
             
             // 意味の表示を更新
-            let meaningElement = div.querySelector('.view-mode p:nth-of-type(' + (partOfSpeechElement ? '2' : '1') + ')');
+            const meaningIndex = isJapanese ? 
+              (div.dataset.reading && partOfSpeechElement ? 3 : 
+               div.dataset.reading || partOfSpeechElement ? 2 : 1) : 
+              (partOfSpeechElement ? 2 : 1);
+            
+            let meaningElement = div.querySelector(`.view-mode p:nth-of-type(${meaningIndex})`);
             if (!meaningElement || !meaningElement.innerHTML.includes('意味:')) {
               meaningElement = document.createElement('p');
               if (partOfSpeechElement) {
                 partOfSpeechElement.after(meaningElement);
+              } else if (isJapanese && div.dataset.reading) {
+                div.querySelector('.view-mode p:first-of-type').after(meaningElement);
               } else {
                 div.querySelector('.view-mode h3').after(meaningElement);
               }
@@ -433,19 +506,28 @@ use TangoTraining\LanguageCode;
             div.querySelector('.view-mode').style.display = 'block';
             div.querySelector('.edit-mode').style.display = 'none';
           });
-          
+
           // キャンセルボタンのイベント
           div.querySelector('.cancel-btn').addEventListener('click', () => {
             // 編集内容を破棄して表示モードに戻す
             div.querySelector('.view-mode').style.display = 'block';
             div.querySelector('.edit-mode').style.display = 'none';
           });
-          
+
           // 登録ボタンのイベント - 直接DBに登録
           div.querySelector('.register-btn').addEventListener('click', () => {
-            saveWordToDB(div.dataset.word, div.dataset.meaning || '', div.dataset.note, div, containerId, registerBtnId, div.dataset.partOfSpeech);
+            saveWordToDB(
+              div.dataset.word, 
+              div.dataset.meaning || '', 
+              div.dataset.note, 
+              div, 
+              containerId, 
+              registerBtnId, 
+              div.dataset.partOfSpeech,
+              isJapanese ? div.dataset.reading || '' : null
+            );
           });
-          
+
           // 削除ボタンのイベント
           div.querySelector('.delete-btn').addEventListener('click', () => {
             div.remove();
@@ -455,8 +537,6 @@ use TangoTraining\LanguageCode;
               document.getElementById(registerBtnId).style.display = 'none';
             }
           });
-          
-          container.appendChild(div);
         });
         
         document.getElementById(containerId === 'extractedWords' ? 'resultArea' : 'directResultArea').style.display = 'block';
@@ -635,12 +715,17 @@ use TangoTraining\LanguageCode;
       
       const promises = [];
       
+      // 言語情報の取得
+      const sourceLanguage = document.getElementById('sourceLanguage').value;
+      const targetLanguage = document.getElementById('targetLanguage').value;
+      
       // 全ての単語アイテムをループ
       wordItems.forEach((item, index) => {
         const word = item.dataset.word;
         const meaning = item.dataset.meaning;
         const note = item.dataset.note;
         const partOfSpeech = item.dataset.partOfSpeech;
+        const reading = item.dataset.reading || '';
         
         if (!word) return;
         
@@ -650,6 +735,13 @@ use TangoTraining\LanguageCode;
           formData.append('meaning', meaning);
           formData.append('note', note);
           formData.append('part_of_speech', partOfSpeech);
+          formData.append('sourceLanguage', sourceLanguage);
+          formData.append('targetLanguage', targetLanguage);
+          
+          // 日本語の場合はフリガナも追加
+          if (sourceLanguage === '日本語' && reading) {
+            formData.append('reading', reading);
+          }
           
           fetch('save_word.php', {
             method: 'POST',
@@ -724,6 +816,12 @@ use TangoTraining\LanguageCode;
       formData.append('meaning', meaning);
       formData.append('note', note);
       formData.append('part_of_speech', partOfSpeech);
+      
+      // 言語情報を追加
+      const sourceLanguage = document.getElementById('sourceLanguage').value;
+      const targetLanguage = document.getElementById('targetLanguage').value;
+      formData.append('sourceLanguage', sourceLanguage);
+      formData.append('targetLanguage', targetLanguage);
       
       // 処理中表示
       const btn = btnElement;
@@ -834,12 +932,23 @@ use TangoTraining\LanguageCode;
     });
     
     // DB登録用関数
-    function saveWordToDB(word, meaning, note, divElement, containerId, registerBtnId, partOfSpeech = '') {
+    function saveWordToDB(word, meaning, note, divElement, containerId, registerBtnId, partOfSpeech = '', reading = '') {
       let formData = new FormData();
       formData.append('word', word);
       formData.append('meaning', meaning);
       formData.append('note', note);
       formData.append('part_of_speech', partOfSpeech);
+      
+      // 言語情報を追加
+      const sourceLanguage = document.getElementById('sourceLanguage').value;
+      const targetLanguage = document.getElementById('targetLanguage').value;
+      formData.append('sourceLanguage', sourceLanguage);
+      formData.append('targetLanguage', targetLanguage);
+      
+      // 日本語の場合はフリガナも追加
+      if (sourceLanguage === '日本語' && reading) {
+        formData.append('reading', reading);
+      }
       
       fetch('save_word.php', {
         method: 'POST',
@@ -898,6 +1007,115 @@ use TangoTraining\LanguageCode;
       setTimeout(() => {
         messageEl.remove();
       }, 3000);
+    }
+
+    /* 単語入力フォームを生成する関数 */
+    function createWordInputForm(id) {
+      return `
+        <div class="form-row" id="word-form-${id}">
+          <div class="form-group col-md-3">
+            <label for="word-${id}">単語:</label>
+            <input type="text" class="form-control" id="word-${id}" placeholder="単語を入力">
+          </div>
+          <div class="form-group col-md-3 reading-field" style="display: none;">
+            <label for="reading-${id}">フリガナ:</label>
+            <input type="text" class="form-control" id="reading-${id}" placeholder="フリガナを入力">
+          </div>
+          <div class="form-group col-md-3">
+            <label for="part_of_speech-${id}">品詞:</label>
+            <input type="text" class="form-control" id="part_of_speech-${id}" placeholder="品詞">
+          </div>
+          <div class="form-group col-md-3">
+            <label for="meaning-${id}">意味:</label>
+            <input type="text" class="form-control" id="meaning-${id}" placeholder="意味を入力">
+          </div>
+          <div class="form-group col-md-2">
+            <label for="note-${id}">備考:</label>
+            <input type="text" class="form-control" id="note-${id}" placeholder="備考">
+          </div>
+          <div class="form-group col-md-1 d-flex align-items-end">
+            <button class="btn btn-primary" onclick="registerWord('${id}', this)">登録</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function registerWord(id, btnElement) {
+      const wordInputId = `word-${id}`;
+      const meaningInputId = `meaning-${id}`;
+      const noteInputId = `note-${id}`;
+      const partOfSpeechInputId = `part_of_speech-${id}`;
+      const readingInputId = `reading-${id}`;
+      
+      const word = document.getElementById(wordInputId).value.trim();
+      const meaning = document.getElementById(meaningInputId).value.trim();
+      const note = document.getElementById(noteInputId).value.trim();
+      const partOfSpeech = document.getElementById(partOfSpeechInputId).value.trim();
+      
+      if (!word) {
+        alert("単語を入力してください");
+        return;
+      }
+      
+      // DB登録処理
+      let formData = new FormData();
+      formData.append('word', word);
+      formData.append('meaning', meaning);
+      formData.append('note', note);
+      formData.append('part_of_speech', partOfSpeech);
+      
+      // 言語情報を追加
+      const sourceLanguage = document.getElementById('sourceLanguage').value;
+      const targetLanguage = document.getElementById('targetLanguage').value;
+      formData.append('sourceLanguage', sourceLanguage);
+      formData.append('targetLanguage', targetLanguage);
+      
+      // 日本語の場合のみフリガナも追加
+      if (sourceLanguage === '日本語') {
+        const reading = document.getElementById(readingInputId).value.trim();
+        formData.append('reading', reading);
+      }
+      
+      // 処理中表示
+      const btn = btnElement;
+      const originalText = btn.textContent;
+      btn.textContent = "登録中...";
+      btn.disabled = true;
+      
+      fetch('save_word.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert("登録エラー: " + data.error);
+        } else {
+          // 成功メッセージ
+          showTemporaryMessage(`「${word}」を登録しました`);
+          
+          // 入力欄をクリア
+          document.getElementById(wordInputId).value = '';
+          document.getElementById(meaningInputId).value = '';
+          document.getElementById(noteInputId).value = '';
+          document.getElementById(partOfSpeechInputId).value = '';
+          if (sourceLanguage === '日本語') {
+            document.getElementById(readingInputId).value = '';
+          }
+        }
+        
+        // ボタンを元に戻す
+        btn.textContent = originalText;
+        btn.disabled = false;
+      })
+      .catch(err => {
+        console.error(err);
+        
+        // エラー時もボタンを元に戻す
+        btn.textContent = originalText;
+        btn.disabled = false;
+        alert("エラーが発生しました。詳細はコンソールを確認してください。");
+      });
     }
   </script>
   

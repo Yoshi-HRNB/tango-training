@@ -65,6 +65,11 @@ $translations = $wordController->getTranslationsByWordId($id);
           <input type="text" id="word" name="word" value="<?php echo htmlspecialchars($wordData['word'], ENT_QUOTES, 'UTF-8'); ?>" required>
         </div>
 
+        <div class="form-group reading-field" style="display: <?php echo $wordData['language_code'] === 'ja' ? 'block' : 'none'; ?>">
+          <label for="reading">フリガナ:</label>
+          <input type="text" id="reading" name="reading" value="<?php echo htmlspecialchars($wordData['reading'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+        </div>
+
         <div class="form-group">
           <label for="part_of_speech">品詞:</label>
           <input type="text" id="part_of_speech" name="part_of_speech" value="<?php echo htmlspecialchars($wordData['part_of_speech'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
@@ -115,6 +120,15 @@ $translations = $wordController->getTranslationsByWordId($id);
     document.addEventListener('DOMContentLoaded', function() {
       // 言語コード定義
       <?= LanguageCode::getJavaScriptDefinition() ?>
+      
+      // 言語選択が変更されたときにフリガナフィールドの表示/非表示を切り替える
+      const languageSelect = document.getElementById('language_code');
+      const readingField = document.querySelector('.reading-field');
+      
+      languageSelect.addEventListener('change', function() {
+        // 日本語の場合のみフリガナフィールドを表示
+        readingField.style.display = (this.value === 'ja') ? 'block' : 'none';
+      });
       
       // 翻訳追加ボタン
       document.getElementById('add-translation').addEventListener('click', function() {
