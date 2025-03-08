@@ -27,6 +27,7 @@ $user_id = 1;
 $word          = isset($_POST['word']) ? trim($_POST['word']) : '';
 $meaning       = isset($_POST['meaning']) ? trim($_POST['meaning']) : '';
 $note          = isset($_POST['note']) ? trim($_POST['note']) : '';
+$part_of_speech = isset($_POST['part_of_speech']) ? trim($_POST['part_of_speech']) : '';
 $language_code = isset($_POST['language_code']) ? trim($_POST['language_code']) : 'vi';
 
 if (!$word) {
@@ -57,7 +58,7 @@ try {
     }
 
     // --- DBに登録 ---
-    // WordController::createWord($user_id, $language_code, $word, $note, $translations)
+    // WordController::createWord($user_id, $language_code, $word, $note, $part_of_speech, $translations)
     // translations は配列で渡す
     $translations = [];
     if ($meaning) {
@@ -69,7 +70,7 @@ try {
         ];
     }
 
-    $result = $wc->createWord($user_id, $language_code, $word, $note, $translations);
+    $result = $wc->createWord($user_id, $language_code, $word, $note, $part_of_speech, $translations);
     if (!$result) {
         echo json_encode(['error' => 'DB登録に失敗しました。']);
         exit;

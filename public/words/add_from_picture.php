@@ -85,6 +85,25 @@
       margin-bottom: 10px;
       font-weight: 500;
     }
+    
+    /* 編集モードのスタイル */
+    .word-item .form-group {
+      margin-bottom: 10px;
+    }
+
+    .word-item .form-control {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .word-item .edit-mode {
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -106,6 +125,7 @@
             <select id="sourceLanguage" class="form-control">
               <option value="英語" selected>英語</option>
               <option value="ベトナム語">ベトナム語</option>
+              <option value="日本語">日本語</option>
               <option value="フランス語">フランス語</option>
               <option value="ドイツ語">ドイツ語</option>
               <option value="スペイン語">スペイン語</option>
@@ -140,18 +160,13 @@
             <textarea id="directInputText" placeholder="登録したいテキストを入力してください" rows="4"></textarea>
           </div>
           <div class="form-group">
-            <label for="levelSelect">抽出レベル (1〜10):</label>
+            <label for="levelSelect">抽出レベル (1〜5):</label>
             <select id="levelSelect" class="form-control">
-              <option value="1">レベル 1 (初学者向け)</option>
-              <option value="2">レベル 2 (学習開始4週間)</option>
-              <option value="3">レベル 3 (学習3か月程度)</option>
-              <option value="4">レベル 4 (基本会話)</option>
-              <option value="5" selected>レベル 5 (日常会話)</option>
-              <option value="6">レベル 6 (旅行会話)</option>
-              <option value="7">レベル 7 (複雑な文章)</option>
-              <option value="8">レベル 8 (ビジネス会話)</option>
-              <option value="9">レベル 9 (高レベル)</option>
-              <option value="10">レベル 10 (ネイティブ難度)</option>
+              <option value="1" selected>抽出レベル1(100%)</option>
+              <option value="2">抽出レベル2(80%)</option>
+              <option value="3">抽出レベル3(60%)</option>
+              <option value="4">抽出レベル4(40%)</option>
+              <option value="5">抽出レベル5(20%)</option>
             </select>
           </div>
           <button id="directTranslateBtn" class="btn btn-primary">単語を翻訳・抽出</button>
@@ -172,6 +187,10 @@
           <div class="form-group">
             <label for="directNewWordInput">単語:</label>
             <input type="text" id="directNewWordInput" placeholder="単語を入力">
+          </div>
+          <div class="form-group">
+            <label for="directNewPartOfSpeechInput">品詞:</label>
+            <input type="text" id="directNewPartOfSpeechInput" placeholder="品詞を入力">
           </div>
           <div class="form-group">
             <label for="directNewMeaningInput">意味:</label>
@@ -226,6 +245,10 @@
           <div class="form-group">
             <label for="newWordInput">単語:</label>
             <input type="text" id="newWordInput" placeholder="単語を入力">
+          </div>
+          <div class="form-group">
+            <label for="newPartOfSpeechInput">品詞:</label>
+            <input type="text" id="newPartOfSpeechInput" placeholder="品詞を入力">
           </div>
           <div class="form-group">
             <label for="newMeaningInput">意味:</label>
@@ -291,25 +314,135 @@
         words.forEach(word => {
           // noteフィールドを使用
           const noteText = word.note || '';
+          const partOfSpeech = word.part_of_speech || '';
           
           const div = document.createElement('div');
           div.className = 'word-item';
           div.dataset.word = word.word;
           div.dataset.meaning = word.meaning || '';
           div.dataset.note = noteText;
+          div.dataset.partOfSpeech = partOfSpeech;
           div.innerHTML = `
-            <h3>${word.word}</h3>
-            <p><strong>意味:</strong> ${word.meaning || '意味なし'}</p>
-            ${noteText ? `<p class="note-text"><strong>補足:</strong> ${noteText}</p>` : ''}
-            <div class="flex gap-2 mt-2">
-              <button class="btn btn-primary btn-sm register-btn">登録</button>
-              <button class="btn btn-danger btn-sm delete-btn">削除</button>
+            <div class="view-mode">
+              <h3>${word.word}</h3>
+              ${partOfSpeech ? `<p><strong>品詞:</strong> ${partOfSpeech}</p>` : ''}
+              <p><strong>意味:</strong> ${word.meaning || '意味なし'}</p>
+              ${noteText ? `<p class="note-text"><strong>補足:</strong> ${noteText}</p>` : ''}
+              <div class="flex gap-2 mt-2">
+                <button class="btn btn-secondary btn-sm edit-btn">編集</button>
+                <button class="btn btn-primary btn-sm register-btn">登録</button>
+                <button class="btn btn-danger btn-sm delete-btn">削除</button>
+              </div>
+            </div>
+            <div class="edit-mode" style="display: none;">
+              <div class="form-group">
+                <label>単語:</label>
+                <input type="text" class="form-control edit-word" value="${word.word}">
+              </div>
+              <div class="form-group">
+                <label>品詞:</label>
+                <input type="text" class="form-control edit-part-of-speech" value="${partOfSpeech}">
+              </div>
+              <div class="form-group">
+                <label>意味:</label>
+                <input type="text" class="form-control edit-meaning" value="${word.meaning || ''}">
+              </div>
+              <div class="form-group">
+                <label>補足:</label>
+                <input type="text" class="form-control edit-note" value="${noteText}">
+              </div>
+              <div class="flex gap-2 mt-2">
+                <button class="btn btn-success btn-sm save-btn">保存</button>
+                <button class="btn btn-secondary btn-sm cancel-btn">キャンセル</button>
+              </div>
             </div>
           `;
           
+          // 編集ボタンのイベント
+          div.querySelector('.edit-btn').addEventListener('click', () => {
+            div.querySelector('.view-mode').style.display = 'none';
+            div.querySelector('.edit-mode').style.display = 'block';
+          });
+          
+          // 保存ボタンのイベント
+          div.querySelector('.save-btn').addEventListener('click', () => {
+            // 編集した値を取得
+            const newWord = div.querySelector('.edit-word').value.trim();
+            const newPartOfSpeech = div.querySelector('.edit-part-of-speech').value.trim();
+            const newMeaning = div.querySelector('.edit-meaning').value.trim();
+            const newNote = div.querySelector('.edit-note').value.trim();
+            
+            if (!newWord) {
+              alert('単語を入力してください');
+              return;
+            }
+            
+            // データ属性とHTMLを更新
+            div.dataset.word = newWord;
+            div.dataset.partOfSpeech = newPartOfSpeech;
+            div.dataset.meaning = newMeaning;
+            div.dataset.note = newNote;
+            
+            // ビューモードの内容を更新
+            div.querySelector('.view-mode h3').textContent = newWord;
+            
+            // 品詞の表示を更新
+            let partOfSpeechElement = div.querySelector('.view-mode p:first-of-type');
+            if (partOfSpeechElement && partOfSpeechElement.innerHTML.includes('品詞:')) {
+              if (newPartOfSpeech) {
+                partOfSpeechElement.innerHTML = `<strong>品詞:</strong> ${newPartOfSpeech}`;
+              } else {
+                partOfSpeechElement.remove();
+                partOfSpeechElement = null;
+              }
+            } else if (newPartOfSpeech) {
+              partOfSpeechElement = document.createElement('p');
+              partOfSpeechElement.innerHTML = `<strong>品詞:</strong> ${newPartOfSpeech}`;
+              div.querySelector('.view-mode h3').after(partOfSpeechElement);
+            }
+            
+            // 意味の表示を更新
+            let meaningElement = div.querySelector('.view-mode p:nth-of-type(' + (partOfSpeechElement ? '2' : '1') + ')');
+            if (!meaningElement || !meaningElement.innerHTML.includes('意味:')) {
+              meaningElement = document.createElement('p');
+              if (partOfSpeechElement) {
+                partOfSpeechElement.after(meaningElement);
+              } else {
+                div.querySelector('.view-mode h3').after(meaningElement);
+              }
+            }
+            meaningElement.innerHTML = `<strong>意味:</strong> ${newMeaning || '意味なし'}`;
+            
+            // 補足の表示を更新
+            const noteElement = div.querySelector('.note-text');
+            if (newNote) {
+              if (noteElement) {
+                noteElement.innerHTML = `<strong>補足:</strong> ${newNote}`;
+              } else {
+                const newNoteElement = document.createElement('p');
+                newNoteElement.className = 'note-text';
+                newNoteElement.innerHTML = `<strong>補足:</strong> ${newNote}`;
+                meaningElement.after(newNoteElement);
+              }
+            } else if (noteElement) {
+              noteElement.remove();
+            }
+            
+            // 表示モードに戻す
+            div.querySelector('.view-mode').style.display = 'block';
+            div.querySelector('.edit-mode').style.display = 'none';
+          });
+          
+          // キャンセルボタンのイベント
+          div.querySelector('.cancel-btn').addEventListener('click', () => {
+            // 編集内容を破棄して表示モードに戻す
+            div.querySelector('.view-mode').style.display = 'block';
+            div.querySelector('.edit-mode').style.display = 'none';
+          });
+          
           // 登録ボタンのイベント - 直接DBに登録
           div.querySelector('.register-btn').addEventListener('click', () => {
-            saveWordToDB(word.word, word.meaning || '', noteText, div, containerId, registerBtnId);
+            saveWordToDB(div.dataset.word, div.dataset.meaning || '', div.dataset.note, div, containerId, registerBtnId, div.dataset.partOfSpeech);
           });
           
           // 削除ボタンのイベント
@@ -506,6 +639,7 @@
         const word = item.dataset.word;
         const meaning = item.dataset.meaning;
         const note = item.dataset.note;
+        const partOfSpeech = item.dataset.partOfSpeech;
         
         if (!word) return;
         
@@ -514,6 +648,7 @@
           formData.append('word', word);
           formData.append('meaning', meaning);
           formData.append('note', note);
+          formData.append('part_of_speech', partOfSpeech);
           
           fetch('save_word.php', {
             method: 'POST',
@@ -562,19 +697,20 @@
     
     // 手動追加ボタンのイベントリスナー - 直接DBに登録（画像タブ用）
     document.getElementById('addAndRegisterBtn').addEventListener('click', function() {
-      handleManualRegistration('newWordInput', 'newMeaningInput', 'newNoteInput', this);
+      handleManualRegistration('newWordInput', 'newMeaningInput', 'newNoteInput', this, 'newPartOfSpeechInput');
     });
 
     // 手動追加ボタンのイベントリスナー - 直接DBに登録（入力タブ用）
     document.getElementById('directAddAndRegisterBtn').addEventListener('click', function() {
-      handleManualRegistration('directNewWordInput', 'directNewMeaningInput', 'directNewNoteInput', this);
+      handleManualRegistration('directNewWordInput', 'directNewMeaningInput', 'directNewNoteInput', this, 'directNewPartOfSpeechInput');
     });
 
     // 手動登録の共通関数
-    function handleManualRegistration(wordInputId, meaningInputId, noteInputId, btnElement) {
+    function handleManualRegistration(wordInputId, meaningInputId, noteInputId, btnElement, partOfSpeechInputId) {
       const word = document.getElementById(wordInputId).value.trim();
       const meaning = document.getElementById(meaningInputId).value.trim();
       const note = document.getElementById(noteInputId).value.trim();
+      const partOfSpeech = document.getElementById(partOfSpeechInputId).value.trim();
       
       if (!word) {
         alert("単語を入力してください");
@@ -586,6 +722,7 @@
       formData.append('word', word);
       formData.append('meaning', meaning);
       formData.append('note', note);
+      formData.append('part_of_speech', partOfSpeech);
       
       // 処理中表示
       const btn = btnElement;
@@ -609,6 +746,7 @@
           document.getElementById(wordInputId).value = '';
           document.getElementById(meaningInputId).value = '';
           document.getElementById(noteInputId).value = '';
+          document.getElementById(partOfSpeechInputId).value = '';
         }
         
         // ボタンを元に戻す
@@ -688,11 +826,12 @@
     });
     
     // DB登録用関数
-    function saveWordToDB(word, meaning, note, divElement, containerId, registerBtnId) {
+    function saveWordToDB(word, meaning, note, divElement, containerId, registerBtnId, partOfSpeech = '') {
       let formData = new FormData();
       formData.append('word', word);
       formData.append('meaning', meaning);
       formData.append('note', note);
+      formData.append('part_of_speech', partOfSpeech);
       
       fetch('save_word.php', {
         method: 'POST',

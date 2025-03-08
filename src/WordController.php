@@ -182,22 +182,24 @@ class WordController
      * @param string $language_code 言語コード
      * @param string $word 単語
      * @param string|null $note 補足情報
+     * @param string|null $part_of_speech 品詞情報
      * @param array $translations 翻訳の配列（各要素は ['language_code' => ..., 'translation' => ...]）
      * @return bool 成功した場合は true、それ以外は false
      */
-    public function createWord(int $user_id, string $language_code, string $word, ?string $note, array $translations): bool
+    public function createWord(int $user_id, string $language_code, string $word, ?string $note, ?string $part_of_speech = null, array $translations): bool
     {
         try {
             $this->pdo->beginTransaction();
 
             // words テーブルに挿入
             $stmt = $this->pdo->prepare('
-                INSERT INTO words (user_id, language_code, word, note, created_at, updated_at)
-                VALUES (:user_id, :language_code, :word, :note, NOW(), NOW())
+                INSERT INTO words (user_id, language_code, word, part_of_speech, note, created_at, updated_at)
+                VALUES (:user_id, :language_code, :word, :part_of_speech, :note, NOW(), NOW())
             ');
             $stmt->bindValue(':user_id', $user_id, PDO::PARAM_INT);
             $stmt->bindValue(':language_code', $language_code);
             $stmt->bindValue(':word', $word);
+            $stmt->bindValue(':part_of_speech', $part_of_speech);
             $stmt->bindValue(':note', $note);
             $stmt->execute();
 

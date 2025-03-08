@@ -11,7 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $text = isset($_POST['text']) ? $_POST['text'] : '';
 $language = isset($_POST['sourceLanguage']) ? $_POST['sourceLanguage'] : '英語';
-$level = isset($_POST['level']) ? (int)$_POST['level'] : 5;
+$targetLanguage = isset($_POST['targetLanguage']) ? $_POST['targetLanguage'] : '日本語';
+$level = isset($_POST['level']) ? (int)$_POST['level'] : 1;
 
 if (!$text) {
     echo json_encode(['error' => '翻訳する文章が入力されていません。']);
@@ -19,26 +20,22 @@ if (!$text) {
 }
 
 $levelDescription = [
-    1 => "全ての単語を抽出（初学者）",
-    2 => "簡単な単語を抽出(学習開始4週間)",
-    3 => "学習3か月程度レベルの単語を抽出",
-    4 => "基本会話レベル",
-    5 => "日常会話ができるレベルの単語を抽出",
-    6 => "旅行会話レベルの単語を抽出",
-    7 => "少し複雑な文章レベルの単語を抽出",
-    8 => "ビジネス会話レベルの単語を抽出",
-    9 => "高レベルのレベルの単語を抽出",
-    10 => "ネイティブでも難しいレベルの単語を抽出"
+    1 => "抽出レベル(100%)",
+    2 => "抽出レベル(80%)",
+    3 => "抽出レベル(60%)",
+    4 => "抽出レベル(40%)",
+    5 => "抽出レベル(20%)"
 ];
 
-$apiKey = "AIzaSyDEOFn-7w_hlqJn8hQFe9oHfciqoIgeJI4";  // ※実際のキーに変更
+$apiKey = "AIzaSyDEOFn-7w_hlqJn8hQFe9oHfciqoIgeJI4";  
 $apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key={$apiKey}";
 
 $prompt = "
-以下の {$language} の文章を日本語に翻訳し、指定されたレベル(1〜10)に応じた単語を、熟語ごとに抽出してください。
+以下の {$language} の文章を{$targetLanguage}に翻訳し、指定されたレベル(1〜5)に応じた単語を、熟語ごとに抽出してください。
 アラビア数字の抽出は不要。抽出する単語の単位は熟語を優先してください。
 複合語の場合は、意味を分けて、noteに表示してください。
 低いレベルでは抽出する単語の量を多くし、高いレベルでは難易度の高い単語のみを抽出してください。
+各単語の品詞（名詞、動詞、形容詞など）も「part_of_speech」フィールドに出力してください。
 結果は必ず以下の JSON 形式のみで出力してください（meaningも必ず出力）。
 
 余計な説明文やテキストは含めないでください。
@@ -49,11 +46,13 @@ $prompt = "
   \"extracted_words\": [
     {
       \"word\": \"（単語）\",
+      \"part_of_speech\": \"（品詞）\",
       \"meaning\": \"（意味）\",
       \"note\": \"（補足、複合語の場合は分解して意味を表示）\"
     },
     {
       \"word\": \"（単語）\",
+      \"part_of_speech\": \"（品詞）\",
       \"meaning\": \"（意味）\",
       \"note\": \"（補足、複合語の場合は分解して意味を表示）\"
     }
@@ -126,8 +125,19 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     exit;
 }
 
+// 抽出された単語に必要なフィールドが含まれていることを確認
+$extracted_words = [];
+foreach ($jsonOutput["extracted_words"] ?? [] as $word) {
+    $extracted_words[] = [
+        "word" => $word["word"] ?? "",
+        "part_of_speech" => $word["part_of_speech"] ?? "",
+        "meaning" => $word["meaning"] ?? "",
+        "note" => $word["note"] ?? ""
+    ];
+}
+
 echo json_encode([
     "translated_text" => $jsonOutput["translated_text"] ?? "",
-    "extracted_words" => $jsonOutput["extracted_words"] ?? []
+    "extracted_words" => $extracted_words
 ]);
 ?>
