@@ -104,6 +104,45 @@
       border-radius: 4px;
       margin-bottom: 10px;
     }
+
+    /* エラーメッセージのスタイル */
+    .error-message {
+      background-color: #fff3f3;
+      border: 1px solid #ffcaca;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 15px 0;
+      color: #d32f2f;
+    }
+    
+    .error-message h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #c62828;
+    }
+    
+    .error-message details {
+      margin-top: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 5px;
+      background-color: #f9f9f9;
+    }
+    
+    .error-message details summary {
+      cursor: pointer;
+      padding: 8px;
+      font-weight: bold;
+      color: #555;
+    }
+    
+    .error-message pre {
+      margin: 8px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
   </style>
 </head>
 <body>
@@ -589,7 +628,40 @@ use TangoTraining\LanguageCode;
       })
       .then(data => {
         if (data.error) {
-          alert(data.error);
+          // エラーメッセージにAPIからの詳細情報を含める
+          let errorMsg = data.error;
+          if (data.details) {
+            errorMsg += "\n\n詳細: " + data.details;
+          }
+          if (data.raw_response) {
+            // レスポンスが長い場合は切り詰める
+            const rawResponse = typeof data.raw_response === 'string' 
+              ? (data.raw_response.length > 500 ? data.raw_response.substring(0, 500) + '...' : data.raw_response)
+              : JSON.stringify(data.raw_response, null, 2);
+            errorMsg += "\n\nAPIレスポンス: " + rawResponse;
+          }
+          alert(errorMsg);
+          
+          // エラーメッセージをページ内に表示
+          const errorContainer = document.createElement('div');
+          errorContainer.className = 'error-message';
+          errorContainer.innerHTML = `
+            <h3>エラーが発生しました</h3>
+            <p>${data.error}</p>
+            ${data.details ? `<p><strong>詳細:</strong> ${data.details}</p>` : ''}
+            ${data.raw_response ? `<details>
+              <summary>APIレスポンスの詳細（クリックして展開）</summary>
+              <pre style="max-height: 200px; overflow: auto; white-space: pre-wrap; font-size: 12px;">${
+                typeof data.raw_response === 'string' 
+                  ? data.raw_response.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                  : JSON.stringify(data.raw_response, null, 2)
+              }</pre>
+            </details>` : ''}
+          `;
+          
+          // エラーメッセージを抽出結果エリアに挿入
+          document.getElementById('extractedWords').innerHTML = '';
+          document.getElementById('extractedWords').appendChild(errorContainer);
           return;
         }
         
@@ -656,7 +728,40 @@ use TangoTraining\LanguageCode;
       })
       .then(data => {
         if (data.error) {
-          alert(data.error);
+          // エラーメッセージにAPIからの詳細情報を含める
+          let errorMsg = data.error;
+          if (data.details) {
+            errorMsg += "\n\n詳細: " + data.details;
+          }
+          if (data.raw_response) {
+            // レスポンスが長い場合は切り詰める
+            const rawResponse = typeof data.raw_response === 'string' 
+              ? (data.raw_response.length > 500 ? data.raw_response.substring(0, 500) + '...' : data.raw_response)
+              : JSON.stringify(data.raw_response, null, 2);
+            errorMsg += "\n\nAPIレスポンス: " + rawResponse;
+          }
+          alert(errorMsg);
+          
+          // エラーメッセージをページ内に表示
+          const errorContainer = document.createElement('div');
+          errorContainer.className = 'error-message';
+          errorContainer.innerHTML = `
+            <h3>エラーが発生しました</h3>
+            <p>${data.error}</p>
+            ${data.details ? `<p><strong>詳細:</strong> ${data.details}</p>` : ''}
+            ${data.raw_response ? `<details>
+              <summary>APIレスポンスの詳細（クリックして展開）</summary>
+              <pre style="max-height: 200px; overflow: auto; white-space: pre-wrap; font-size: 12px;">${
+                typeof data.raw_response === 'string' 
+                  ? data.raw_response.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                  : JSON.stringify(data.raw_response, null, 2)
+              }</pre>
+            </details>` : ''}
+          `;
+          
+          // エラーメッセージを抽出結果エリアに挿入
+          document.getElementById('directExtractedWords').innerHTML = '';
+          document.getElementById('directExtractedWords').appendChild(errorContainer);
           return;
         }
         

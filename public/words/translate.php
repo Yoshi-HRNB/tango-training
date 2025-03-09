@@ -35,39 +35,46 @@ $apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:
 
 
 $prompt = "
-以下の {$language} の文章を{$targetLanguage}に翻訳し、指定されたレベル(1〜5)に応じた重要単語や熟語を抽出してください。
-アラビア数字は抽出対象外です。熟語は単語より優先して抽出してください。
+以下の {$language} の文章を {$targetLanguage} に翻訳し、指定されたレベル(1〜5)に応じた重要単語や熟語を抽出してください。
+数値（アラビア数字）は抽出対象外とし、熟語や複数の単語で構成される表現は優先的に一つのまとまりとして抽出してください。
+複数単語表現（例: 'in order to', 'make sense' など）は、1つの熟語（またはコロケーション等）として扱ってください。
 複合語は意味ごとに分解し、noteに分けて記載してください。
-日本語以外の言語で、フリガナは不要。
+日本語以外の言語でフリガナは不要です。
 
-抽出レベルの方針:
+【抽出レベルの方針】
 - レベル1：レベル1〜5（すべての未知単語を抽出）
 - レベル2：レベル2〜5の単語を抽出
 - レベル3：レベル3〜5の単語を抽出
-- レベル4：レベル4〜5の難易度高め単語を抽出
+- レベル4：レベル4〜5の難易度が高めの単語を抽出
 - レベル5：専門的・非常に高度な単語のみ抽出
 
-必須の単語情報:
-- word: 必ず{$language}で表記
-- meaning: {$targetLanguage}での意味
-- part_of_speech: {$targetLanguage}表記（名詞・動詞・形容詞・副詞・熟語等）
-- note: 複合語の分解や文法的注意点、補足事項など
+【必須の単語情報】
+1. word: 必ず {$language} で表記
+2. meaning: {$targetLanguage} での意味
+3. part_of_speech: {$targetLanguage} 表記（名詞・動詞・形容詞・副詞・熟語・句動詞・コロケーション等）
+4. note:
+   - 複合語の分解や文法的注意点
+   - 不規則動詞の場合は原形・過去形・過去分詞
+   - 派生形（名詞・形容詞・副詞など）
+   - 類義語や反意語、重要な前置詞の用法など
+   - 複数形は原型を note に明記
 
 【言語別の制約条件】
-日本語の場合:
+
+■ 日本語の場合
 - フリガナ（reading）をカタカナで必ず追加
 
-英語の場合:
-- 冠詞（a, an, the）は抽出不要
-- 複数形は原型をnoteに記載
-- To不定詞は「to」と動詞の原型に分けて抽出
-- 熟語（イディオム）は必ず抽出し、part_of_speechには「idiom」と明記
-- 句動詞（phrasal verbs）を抽出し、part_of_speechには「phrasal verb」と明記
-- 前置詞が重要な場合はnoteに前置詞の用法を記載
-- 不規則動詞の場合、noteに原形・過去形・過去分詞を明記
-- 派生語（名詞・形容詞・副詞など）がある場合、noteに派生形を記載
-- 類義語や反意語があればnoteに補足
-- 慣用表現（collocation）も抽出し、part_of_speechには「collocation」と明記
+■ 英語の場合（{$language} が英語の場合のみ適用）
+1. 冠詞(a, an, the) は抽出不要
+2. 複数形は原型を note に明記
+3. to不定詞
+   - 動詞の原形として抽出（例: 'to access' → 'access'）
+   - ただし、「in order to」などの定型表現は idiom または collocation としてひとまとまりで抽出
+4. 熟語（idiom）、句動詞（phrasal verb）、コロケーション（collocation）は必ず抽出
+5. 前置詞が重要な場合、note に用法を記載
+6. 不規則動詞は note に原形・過去形・過去分詞を明記
+7. 派生語がある場合、note に派生形を記載
+8. 類義語や反意語があれば note に補足
 
 ベトナム語の場合:
 - 類別詞（分類語）は必ずnoteに明記
@@ -124,11 +131,25 @@ curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
 
 $response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $error = curl_error($ch);
 curl_close($ch);
 
 if ($error) {
-    echo json_encode(["error" => "APIリクエストエラー: $error"]);
+    echo json_encode([
+        "error" => "APIリクエストエラー: $error", 
+        "details" => "cURLエラーが発生しました。ネットワーク接続を確認してください。"
+    ]);
+    exit;
+}
+
+// HTTPステータスコードをチェック
+if ($httpCode != 200) {
+    echo json_encode([
+        "error" => "APIからエラーレスポンスを受信しました。HTTPステータスコード: $httpCode", 
+        "raw_response" => $response,
+        "details" => "APIサーバーからのレスポンスコードが正常ではありません。"
+    ]);
     exit;
 }
 
@@ -136,7 +157,11 @@ $responseData = json_decode($response, true);
 
 // JSONとしてパースできなかった場合はHTMLなどのエラーページが返っている可能性があります
 if ($responseData === null) {
-    echo json_encode(["error" => "APIからの応答が正しいJSON形式ではありません。", "raw" => $response]);
+    echo json_encode([
+        "error" => "APIからの応答が正しいJSON形式ではありません。", 
+        "raw_response" => $response,
+        "details" => "応答の形式が期待されたJSONではなく、APIの仕様変更やエラーの可能性があります。"
+    ]);
     exit;
 }
 
@@ -144,12 +169,20 @@ $candidateText = $responseData['candidates'][0]['content']['parts'][0]['text'] ?
 
 // 応答がHTML形式の場合のチェック
 if (strpos(trim($candidateText), '<') === 0) {
-    echo json_encode(["error" => "Gemini APIの応答がHTML形式です。", "raw" => $candidateText]);
+    echo json_encode([
+        "error" => "Gemini APIの応答がHTML形式です。", 
+        "raw_response" => $candidateText,
+        "details" => "APIがHTMLエラーページを返しています。APIキーの有効期限や利用制限を確認してください。"
+    ]);
     exit;
 }
 
 if (!$candidateText) {
-    echo json_encode(["error" => "Geminiからの有効な応答が得られませんでした。"]);
+    echo json_encode([
+        "error" => "Geminiからの有効な応答が得られませんでした。",
+        "raw_response" => $response,
+        "details" => "APIレスポンスに期待された内容が含まれていません。"
+    ]);
     exit;
 }
 
@@ -160,7 +193,8 @@ $jsonOutput = json_decode($cleanText, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
     echo json_encode([
         "error" => "Gemini応答のJSONデコードに失敗: " . json_last_error_msg(),
-        "raw" => $candidateText
+        "raw_response" => $candidateText,
+        "details" => "APIからの応答はJSONのような形式ですが、正しくパースできません。"
     ]);
     exit;
 }

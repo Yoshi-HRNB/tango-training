@@ -225,7 +225,7 @@ session_start();
       <?php if (isset($_SESSION['user_id'])): ?>
         <a href="words/list.php"><i class="fas fa-list"></i> 単語一覧</a>
         <a href="words/add_from_picture.php"><i class="fas fa-plus"></i> 単語を登録</a>
-        <a href="tests/config.php"><i class="fas fa-tasks"></i> テスト設定</a>
+        <a href="tests/test_config.php"><i class="fas fa-tasks"></i> テスト設定</a>
         <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
           <a href="admin/users/list.php"><i class="fas fa-users-cog"></i> ユーザー管理</a>
         <?php endif; ?>
@@ -263,7 +263,7 @@ session_start();
           <div class="card-icon"><i class="fas fa-tasks"></i></div>
           <h3 class="card-title">テスト・復習</h3>
           <p>登録した単語をテストして、記憶を定着させましょう。</p>
-          <a href="tests/config.php" class="btn">テストを開始</a>
+          <a href="tests/test_config.php" class="btn">テストを開始</a>
         </div>
         
         <div class="card">

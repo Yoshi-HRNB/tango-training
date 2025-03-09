@@ -21,8 +21,7 @@ if (!isset($_SESSION['user_id'])) {
 
 
 // セッションから test_typeを取得
-$testType = $_SESSION['test_type'] ?? '2';
-var_dump($testType);
+$testType = '2'; // 単語帳形式に固定
 $limit    = $_SESSION['test_limit'] ?? 5;
 $userId   = (int)$_SESSION['user_id'];
 
@@ -59,19 +58,7 @@ $_SESSION['test_type'] = $testType;
 // is_retry_testフラグ等を初期化
 $_SESSION['is_retry_test'] = false;
 
-// テストタイプに基づいてリダイレクト先を決定
-switch ($testType) {
-    case 2:
-        header('Location: reveal_test.php');
-        break;
-    case 4:
-        header('Location: learn_mode.php');
-        break;
-    default:
-        // デフォルトのリダイレクト先、またはエラーメッセージ
-        header('Location: reveal_test.php');
-        break;
-}
-
+// 常に単語帳形式（reveal_test.php）に遷移
+header('Location: reveal_test.php');
 exit;
 ?>
