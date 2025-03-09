@@ -13,6 +13,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['error' => 'Invalid request method']);
     exit;
 }
+// セッション開始
+session_start();
+
+// ログインチェック
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['error' => 'ログインが必要です。']);
+    exit;
+}
+
 require_once __DIR__ . '/../../src/Database.php';
 require_once __DIR__ . '/../../src/WordController.php';
 require_once __DIR__ . '/../../src/LanguageCode.php';
@@ -21,9 +30,8 @@ use TangoTraining\Database;
 use TangoTraining\WordController;
 use TangoTraining\LanguageCode;
 
-// （ユーザーID）本来はセッションなどから取得する想定
-// デモ用に仮で 1 にしておきます
-$user_id = 1;
+// セッションからユーザーIDを取得
+$user_id = (int)$_SESSION['user_id'];
 
 // 入力パラメータ取得
 $word          = isset($_POST['word']) ? trim($_POST['word']) : '';

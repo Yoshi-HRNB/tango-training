@@ -148,6 +148,9 @@ foreach ($words as $row) {
         'word_id'       => (int)$row['word_id'],
         'language_code' => $row['language_code'],
         'word'          => $row['word'],
+        'note'          => isset($row['note']) ? $row['note'] : '',
+        'part_of_speech' => isset($row['part_of_speech']) ? $row['part_of_speech'] : '',
+        'reading'       => isset($row['reading']) ? $row['reading'] : '',
         'translation_languages' => '',
         'translations'  => ''
     ];
@@ -219,6 +222,9 @@ function formatWords(array $rows, string $answerLang = ''): array
             'word_id'       => (int)$r['word_id'],
             'language_code' => $r['language_code'],
             'word'          => $r['word'],
+            'note'          => isset($r['note']) ? $r['note'] : '',
+            'part_of_speech' => isset($r['part_of_speech']) ? $r['part_of_speech'] : '',
+            'reading'       => isset($r['reading']) ? $r['reading'] : '',
             'translations'  => $transData
         ];
     }

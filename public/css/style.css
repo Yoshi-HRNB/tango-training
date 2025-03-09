@@ -202,6 +202,23 @@ label {
   margin-bottom: 1.5rem;
 }
 
+.form-group-title {
+  font-weight: 600;
+  margin-top: 1.2rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--primary-dark);
+  font-size: 1rem;
+}
+
+.section-title {
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
 /* テーブル */
 table {
   width: 100%;
@@ -417,4 +434,26 @@ tr:hover {
   .card-container {
     height: 180px;
   }
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  width: 160px;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.filter-checkbox label {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.form-row {
+  margin-bottom: 1.2rem;
+  display: flex;
+  flex-wrap: wrap;
 }
