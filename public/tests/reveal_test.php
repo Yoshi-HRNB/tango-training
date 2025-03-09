@@ -348,13 +348,13 @@
     }
     
     .translation-text {
-      font-size: 1.2rem;
-      font-weight: 500;
-      margin-bottom: 8px;
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-bottom: 12px;
       word-wrap: break-word;
       overflow-wrap: break-word;
       word-break: break-all;
-      text-align: left;
+      text-align: center;
       width: 100%;
       display: block;
       color: var(--text-color);
@@ -368,28 +368,12 @@
       word-wrap: break-word;
       overflow-wrap: break-word;
       word-break: break-all;
-      text-align: left;
+      text-align: center;
       width: 100%;
       display: block;
       background-color: var(--gray-light);
       padding: 8px 12px;
       border-radius: 6px;
-    }
-    
-    .part-of-speech {
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-      background-color: #eef2f7;
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 4px;
-      margin-top: 5px;
-      margin-bottom: 10px;
-      max-width: 100%;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      word-break: break-all;
-      text-align: left;
     }
     
     .note-section {
@@ -398,11 +382,34 @@
       margin-top: 15px;
     }
     
+    .note-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
     .note-title {
       font-weight: bold;
       color: var(--primary-color);
-      margin-bottom: 8px;
+      margin-bottom: 0;
+      margin-right: 10px;
       font-size: 1rem;
+    }
+    
+    .part-of-speech {
+      color: #8a9aaf;
+      font-size: 0.85rem;
+      background-color: #f5f7fa;
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin: 0;
+      max-width: 100%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-all;
+      text-align: left;
+      opacity: 0.8;
     }
     
     .note-content {
@@ -902,14 +909,18 @@
                         <p class="translation-text">${t.translation} <span style="color: #888; font-size: 0.9rem;">[${t.language_code}]</span></p>
                       </div>
                     `).join('')
-                  : '<p>訳なし</p>'
+                  : '<p class="translation-text">訳なし</p>'
                 }
                 ${item.language_code === 'ja' && item.reading ? 
                   `<p class="reading-text">フリガナ: ${item.reading}</p>` : ''}
-                ${item.part_of_speech ? 
-                  `<p class="part-of-speech">品詞: ${item.part_of_speech}</p>` : ''}
-                ${item.note && item.note.trim() 
-                  ? `<div class="note-section"><p class="note-title">補足:</p><p class="note-content">${item.note}</p></div>` 
+                ${(item.note && item.note.trim()) || item.part_of_speech ? 
+                  `<div class="note-section">
+                     <div class="note-header">
+                       <p class="note-title">補足:</p>
+                       ${item.part_of_speech ? `<span class="part-of-speech">${item.part_of_speech}</span>` : ''}
+                     </div>
+                     ${item.note && item.note.trim() ? `<p class="note-content">${item.note}</p>` : ''}
+                   </div>` 
                   : ''
                 }
               </div>
