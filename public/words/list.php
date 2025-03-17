@@ -33,6 +33,13 @@ $availableLanguages = $wordController->getAvailableTranslationLanguages();
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $selectedLanguages = isset($_GET['translation_languages']) ? $_GET['translation_languages'] : [];
 
+// 新しいフィルターパラメータを取得
+$testStatus = isset($_GET['test_status']) ? $_GET['test_status'] : '';
+$accuracyRange = isset($_GET['accuracy_range']) ? $_GET['accuracy_range'] : '';
+$sortBy = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'newest';
+$dateRange = isset($_GET['date_range']) ? $_GET['date_range'] : '';
+$partOfSpeech = isset($_GET['part_of_speech']) ? $_GET['part_of_speech'] : '';
+
 // サニタイズ
 $searchSanitized = htmlspecialchars($search, ENT_QUOTES, 'UTF-8');
 $selectedLanguagesSanitized = array_map(function($lang) {
@@ -42,11 +49,70 @@ $selectedLanguagesSanitized = array_map(function($lang) {
 // セッションからユーザーIDを取得
 $user_id = $_SESSION['user_id'];
 
-// フィルター条件を指定しつつ単語一覧を取得
-$filterLanguages = !empty($selectedLanguages) ? $selectedLanguages : null;
-$testFilter = []; // テスト関連のフィルタは別途必要であれば追加
+// テストフィルター条件を構築
+$testFilter = [];
 
-$words = $wordController->getWords($user_id, $search, $filterLanguages);
+// 正解率フィルター
+if ($accuracyRange === 'high') {
+    $testFilter['min_accuracy_rate'] = 80;
+} elseif ($accuracyRange === 'medium') {
+    $testFilter['min_accuracy_rate'] = 50;
+    $testFilter['max_accuracy_rate'] = 79;
+} elseif ($accuracyRange === 'low') {
+    $testFilter['max_accuracy_rate'] = 49;
+}
+
+// テスト状況フィルター
+if ($testStatus === 'tested') {
+    $testFilter['has_been_tested'] = true;
+} elseif ($testStatus === 'not_tested') {
+    $testFilter['not_tested'] = true;
+}
+
+// 日付範囲フィルター
+if ($dateRange === 'last_week') {
+    $testFilter['registration_start_date'] = date('Y-m-d', strtotime('-7 days'));
+} elseif ($dateRange === 'last_month') {
+    $testFilter['registration_start_date'] = date('Y-m-d', strtotime('-30 days'));
+} elseif ($dateRange === 'last_3months') {
+    $testFilter['registration_start_date'] = date('Y-m-d', strtotime('-90 days'));
+}
+
+// ソート順フィルター
+if (!empty($sortBy)) {
+    $testFilter['sort_by'] = $sortBy;
+}
+
+// 言語フィルター
+$filterLanguages = !empty($selectedLanguages) ? $selectedLanguages : null;
+
+// フィルター条件を指定しつつ単語一覧を取得
+$words = $wordController->getWords($user_id, $search, $filterLanguages, $testFilter);
+
+// 単語の統計情報
+$totalWords = count($words);
+$testedWords = 0;
+$notTestedWords = 0;
+$highAccuracyWords = 0; // 正解率80%以上
+$mediumAccuracyWords = 0; // 正解率50%〜79%
+$lowAccuracyWords = 0; // 正解率50%未満
+
+foreach ($words as $word) {
+    if (isset($word['test_count']) && $word['test_count'] > 0) {
+        $testedWords++;
+        
+        $accuracyRate = (int)$word['accuracy_rate'];
+        if ($accuracyRate >= 80) {
+            $highAccuracyWords++;
+        } elseif ($accuracyRate >= 50) {
+            $mediumAccuracyWords++;
+        } else {
+            $lowAccuracyWords++;
+        }
+    } else {
+        $notTestedWords++;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -57,6 +123,210 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    /* 追加スタイル */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    .stat-card h3 {
+      margin-top: 0;
+      font-size: 14px;
+      color: #555;
+    }
+    .stat-card .number {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin: 10px 0;
+    }
+    .stat-card.high-accuracy { border-left: 4px solid #27ae60; }
+    .stat-card.medium-accuracy { border-left: 4px solid #f39c12; }
+    .stat-card.low-accuracy { border-left: 4px solid #e74c3c; }
+    .stat-card.not-tested { border-left: 4px solid #3498db; }
+    
+    .filter-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      .filter-container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .filter-card {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .accuracy-bar {
+      height: 20px;
+      background-color: #f1f1f1;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    
+    .accuracy-value {
+      height: 100%;
+      text-align: center;
+      color: white;
+      line-height: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 10px;
+    }
+    
+    .accuracy-high { background-color: #27ae60; }
+    .accuracy-medium { background-color: #f39c12; }
+    .accuracy-low { background-color: #e74c3c; }
+    
+    .test-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      font-size: 12px;
+    }
+
+    .test-details span {
+      padding: 2px 5px;
+      border-radius: 3px;
+      background-color: #f8f9fa;
+    }
+    
+    .translation-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    
+    .translation-list li {
+      margin-bottom: 3px;
+    }
+    
+    .lang-label {
+      font-weight: bold;
+      color: #3498db;
+    }
+    
+    .tab-container {
+      margin-bottom: 1rem;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 1rem;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      margin-bottom: -1px;
+    }
+    
+    .tab.active {
+      border: 1px solid #ddd;
+      border-bottom-color: white;
+      border-radius: 4px 4px 0 0;
+      font-weight: bold;
+    }
+    
+    .table td.notes {
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .notes-full {
+      display: none;
+      position: absolute;
+      background: white;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 100;
+      max-width: 300px;
+    }
+    
+    tr:hover .notes-full {
+      display: block;
+    }
+    
+    .filter-section {
+      margin-bottom: 1rem;
+    }
+    
+    .filter-section h3 {
+      font-size: 16px;
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+    
+    .radio-group, .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .radio-item, .checkbox-item {
+      display: flex;
+      align-items: center;
+      margin-right: 1rem;
+    }
+    
+    .filter-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      background-color: #e9ecef;
+      border-radius: 16px;
+      font-size: 12px;
+    }
+    
+    .filter-summary {
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    
+    /* モバイル最適化 */
+    @media (max-width: 768px) {
+      .filter-section {
+        flex-direction: column;
+      }
+      
+      .form-group {
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+      
+      .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -64,38 +334,224 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
       <h1>単語一覧</h1>
       
       <div class="nav-links mb-3">
-        <a href="add_from_picture.php">単語登録へ</a>
-        <a href="../index.php">トップへ戻る</a>
+        <a href="add_from_picture.php" class="btn btn-success">単語登録へ</a>
+        <a href="../index.php" class="btn btn-secondary">トップへ戻る</a>
       </div>
       
-      <form action="" method="get" class="filter-form">
-        <div class="filter-section">
-          <div class="form-group">
-            <label for="search">検索:</label>
-            <input type="text" name="search" id="search" value="<?php echo $searchSanitized; ?>" placeholder="単語を検索...">
-          </div>
-          
-          <div class="form-group">
-            <label for="translation_languages">翻訳言語:</label>
-            <select name="translation_languages[]" id="translation_languages" multiple size="5">
-              <?php foreach (LanguageCode::getLanguageMap() as $code => $name): ?>
-              <option value="<?php echo htmlspecialchars($code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo in_array($code, $selectedLanguages) ? 'selected' : ''; ?>>
-                <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
-              </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          
-          <button type="submit" class="btn btn-primary">フィルター</button>
-          <a href="list.php" class="btn btn-secondary">リセット</a>
+      <!-- 単語統計ダッシュボード -->
+      <div class="dashboard">
+        <div class="stat-card">
+          <h3>登録単語数</h3>
+          <div class="number"><?php echo $totalWords; ?></div>
         </div>
-      </form>
+        <div class="stat-card not-tested">
+          <h3>未テスト</h3>
+          <div class="number"><?php echo $notTestedWords; ?></div>
+        </div>
+        <div class="stat-card high-accuracy">
+          <h3>高正解率（80%以上）</h3>
+          <div class="number"><?php echo $highAccuracyWords; ?></div>
+        </div>
+        <div class="stat-card medium-accuracy">
+          <h3>中正解率（50-79%）</h3>
+          <div class="number"><?php echo $mediumAccuracyWords; ?></div>
+        </div>
+        <div class="stat-card low-accuracy">
+          <h3>低正解率（50%未満）</h3>
+          <div class="number"><?php echo $lowAccuracyWords; ?></div>
+        </div>
+      </div>
       
+      <!-- 適用中のフィルター表示 -->
+      <?php if (!empty($search) || !empty($selectedLanguages) || !empty($testStatus) || !empty($accuracyRange) || !empty($dateRange) || !empty($partOfSpeech)): ?>
+      <div class="filter-summary">
+        <strong>適用中のフィルター：</strong>
+        <?php if (!empty($search)): ?>
+          <span class="filter-badge">検索: <?php echo $searchSanitized; ?></span>
+        <?php endif; ?>
+        
+        <?php if (!empty($selectedLanguages)): ?>
+          <span class="filter-badge">言語:
+            <?php 
+              $langNames = [];
+              foreach ($selectedLanguages as $code) {
+                $langNames[] = LanguageCode::getNameFromCode($code);
+              }
+              echo implode(', ', $langNames);
+            ?>
+          </span>
+        <?php endif; ?>
+        
+        <?php if (!empty($testStatus)): ?>
+          <span class="filter-badge">テスト状況: 
+            <?php echo $testStatus === 'tested' ? 'テスト済み' : '未テスト'; ?>
+          </span>
+        <?php endif; ?>
+        
+        <?php if (!empty($accuracyRange)): ?>
+          <span class="filter-badge">正解率: 
+            <?php 
+              if ($accuracyRange === 'high') echo '高（80%以上）';
+              elseif ($accuracyRange === 'medium') echo '中（50-79%）';
+              elseif ($accuracyRange === 'low') echo '低（50%未満）';
+            ?>
+          </span>
+        <?php endif; ?>
+        
+        <?php if (!empty($dateRange)): ?>
+          <span class="filter-badge">登録期間: 
+            <?php 
+              if ($dateRange === 'last_week') echo '過去1週間';
+              elseif ($dateRange === 'last_month') echo '過去1ヶ月';
+              elseif ($dateRange === 'last_3months') echo '過去3ヶ月';
+            ?>
+          </span>
+        <?php endif; ?>
+        
+        <?php if (!empty($partOfSpeech)): ?>
+          <span class="filter-badge">品詞: <?php echo htmlspecialchars($partOfSpeech); ?></span>
+        <?php endif; ?>
+        
+        <a href="list.php" class="btn btn-sm btn-secondary">フィルターをクリア</a>
+      </div>
+      <?php endif; ?>
+      
+      <!-- フィルター部分 -->
+      <div class="tab-container">
+        <div class="tabs">
+          <div class="tab active" id="tab-list">単語一覧</div>
+          <div class="tab" id="tab-filter">検索・フィルター</div>
+        </div>
+        
+        <div id="filter-panel" style="display: none;">
+          <form action="" method="get" class="filter-form">
+            <div class="filter-container">
+              <!-- 基本検索 -->
+              <div class="filter-card">
+                <div class="filter-section">
+                  <h3>基本検索</h3>
+                  <div class="form-group">
+                    <label for="search">単語・翻訳検索:</label>
+                    <input type="text" name="search" id="search" value="<?php echo $searchSanitized; ?>" placeholder="単語や意味を検索...">
+                  </div>
+                </div>
+                
+                <div class="filter-section">
+                  <h3>テスト状況</h3>
+                  <div class="radio-group">
+                    <div class="radio-item">
+                      <input type="radio" id="test_status_all" name="test_status" value="" <?php echo $testStatus === '' ? 'checked' : ''; ?>>
+                      <label for="test_status_all">すべて</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="test_status_tested" name="test_status" value="tested" <?php echo $testStatus === 'tested' ? 'checked' : ''; ?>>
+                      <label for="test_status_tested">テスト済み</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="test_status_not_tested" name="test_status" value="not_tested" <?php echo $testStatus === 'not_tested' ? 'checked' : ''; ?>>
+                      <label for="test_status_not_tested">未テスト</label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="filter-section">
+                  <h3>正解率</h3>
+                  <div class="radio-group">
+                    <div class="radio-item">
+                      <input type="radio" id="accuracy_all" name="accuracy_range" value="" <?php echo $accuracyRange === '' ? 'checked' : ''; ?>>
+                      <label for="accuracy_all">すべて</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="accuracy_high" name="accuracy_range" value="high" <?php echo $accuracyRange === 'high' ? 'checked' : ''; ?>>
+                      <label for="accuracy_high">高（80%以上）</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="accuracy_medium" name="accuracy_range" value="medium" <?php echo $accuracyRange === 'medium' ? 'checked' : ''; ?>>
+                      <label for="accuracy_medium">中（50-79%）</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="accuracy_low" name="accuracy_range" value="low" <?php echo $accuracyRange === 'low' ? 'checked' : ''; ?>>
+                      <label for="accuracy_low">低（50%未満）</label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="filter-section">
+                  <h3>登録期間</h3>
+                  <div class="radio-group">
+                    <div class="radio-item">
+                      <input type="radio" id="date_all" name="date_range" value="" <?php echo $dateRange === '' ? 'checked' : ''; ?>>
+                      <label for="date_all">すべて</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="date_last_week" name="date_range" value="last_week" <?php echo $dateRange === 'last_week' ? 'checked' : ''; ?>>
+                      <label for="date_last_week">過去1週間</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="date_last_month" name="date_range" value="last_month" <?php echo $dateRange === 'last_month' ? 'checked' : ''; ?>>
+                      <label for="date_last_month">過去1ヶ月</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="date_last_3months" name="date_range" value="last_3months" <?php echo $dateRange === 'last_3months' ? 'checked' : ''; ?>>
+                      <label for="date_last_3months">過去3ヶ月</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            
+              <!-- 詳細フィルター -->
+              <div class="filter-card">
+                <div class="filter-section">
+                  <h3>翻訳言語</h3>
+                  <div class="form-group">
+                    <select name="translation_languages[]" id="translation_languages" multiple size="6">
+                      <?php foreach (LanguageCode::getLanguageMap() as $code => $name): ?>
+                      <option value="<?php echo htmlspecialchars($code, ENT_QUOTES, 'UTF-8'); ?>" <?php echo in_array($code, $selectedLanguages) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
+                      </option>
+                      <?php endforeach; ?>
+                    </select>
+                    <small>複数選択：Ctrlキーを押しながらクリック</small>
+                  </div>
+                </div>
+                
+                <div class="filter-section">
+                  <h3>並び替え</h3>
+                  <div class="radio-group">
+                    <div class="radio-item">
+                      <input type="radio" id="sort_newest" name="sort_by" value="newest" <?php echo $sortBy === 'newest' ? 'checked' : ''; ?>>
+                      <label for="sort_newest">新しい順</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="sort_oldest" name="sort_by" value="oldest" <?php echo $sortBy === 'oldest' ? 'checked' : ''; ?>>
+                      <label for="sort_oldest">古い順</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="sort_accuracy_asc" name="sort_by" value="accuracy_asc" <?php echo $sortBy === 'accuracy_asc' ? 'checked' : ''; ?>>
+                      <label for="sort_accuracy_asc">正解率（低い順）</label>
+                    </div>
+                    <div class="radio-item">
+                      <input type="radio" id="sort_accuracy_desc" name="sort_by" value="accuracy_desc" <?php echo $sortBy === 'accuracy_desc' ? 'checked' : ''; ?>>
+                      <label for="sort_accuracy_desc">正解率（高い順）</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-actions" style="margin-top: 1rem;">
+              <button type="submit" class="btn btn-primary">フィルターを適用</button>
+              <a href="list.php" class="btn btn-secondary">リセット</a>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- テーブル部分 -->
       <div class="table-responsive">
         <table class="table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>単語</th>
               <th>品詞</th>
               <th>言語</th>
@@ -109,7 +565,6 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
             <?php if (count($words) > 0): ?>
               <?php foreach ($words as $w): ?>
                 <tr>
-                  <td data-label="ID"><?php echo (int)$w['word_id']; ?></td>
                   <td data-label="単語"><?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?></td>
                   <td data-label="品詞"><?php echo htmlspecialchars($w['part_of_speech'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                   <td data-label="言語"><?php echo htmlspecialchars(LanguageCode::getNameFromCode($w['language_code']), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -130,11 +585,29 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
                     }
                     ?>
                   </td>
-                  <td data-label="補足"><?php echo !empty($w['note']) ? htmlspecialchars($w['note'], ENT_QUOTES, 'UTF-8') : ''; ?></td>
+                  <td data-label="補足" class="notes">
+                    <?php if (!empty($w['note'])): ?>
+                      <div class="notes-text"><?php echo htmlspecialchars(mb_substr($w['note'], 0, 30), ENT_QUOTES, 'UTF-8'); ?><?php echo mb_strlen($w['note']) > 30 ? '...' : ''; ?></div>
+                      <?php if (mb_strlen($w['note']) > 30): ?>
+                        <div class="notes-full"><?php echo nl2br(htmlspecialchars($w['note'], ENT_QUOTES, 'UTF-8')); ?></div>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      -
+                    <?php endif; ?>
+                  </td>
                   <td data-label="学習状況" class="learning-status">
-                    <?php if (isset($w['test_count']) && $w['test_count'] > 0): ?>
+                    <?php if (isset($w['test_count']) && $w['test_count'] > 0): 
+                      $accuracyClass = '';
+                      if ((int)$w['accuracy_rate'] >= 80) {
+                        $accuracyClass = 'accuracy-high';
+                      } elseif ((int)$w['accuracy_rate'] >= 50) {
+                        $accuracyClass = 'accuracy-medium';
+                      } else {
+                        $accuracyClass = 'accuracy-low';
+                      }
+                    ?>
                       <div class="accuracy-bar">
-                        <div class="accuracy-value" style="width: <?php echo (int)$w['accuracy_rate']; ?>%;">
+                        <div class="accuracy-value <?php echo $accuracyClass; ?>" style="width: <?php echo (int)$w['accuracy_rate']; ?>%;">
                           <?php echo (int)$w['accuracy_rate']; ?>%
                         </div>
                       </div>
@@ -144,7 +617,7 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
                         <span>不正解: <?php echo (int)$w['wrong_count']; ?>回</span>
                       </div>
                     <?php else: ?>
-                      未テスト
+                      <span class="badge badge-secondary">未テスト</span>
                     <?php endif; ?>
                   </td>
                   <td data-label="アクション" class="actions-cell">
@@ -155,7 +628,7 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
               <?php endforeach; ?>
             <?php else: ?>
               <tr>
-                <td colspan="8" class="text-center">単語が見つかりません。</td>
+                <td colspan="7" class="text-center">単語が見つかりません。</td>
               </tr>
             <?php endif; ?>
           </tbody>
@@ -168,6 +641,31 @@ $words = $wordController->getWords($user_id, $search, $filterLanguages);
     document.addEventListener('DOMContentLoaded', function() {
       // 言語コード定義
       <?= LanguageCode::getJavaScriptDefinition() ?>
+      
+      // タブ切り替え
+      const tabList = document.getElementById('tab-list');
+      const tabFilter = document.getElementById('tab-filter');
+      const filterPanel = document.getElementById('filter-panel');
+      
+      tabList.addEventListener('click', function() {
+        tabList.classList.add('active');
+        tabFilter.classList.remove('active');
+        filterPanel.style.display = 'none';
+      });
+      
+      tabFilter.addEventListener('click', function() {
+        tabFilter.classList.add('active');
+        tabList.classList.remove('active');
+        filterPanel.style.display = 'block';
+      });
+      
+      // フィルターパネルを自動的に表示（URLにフィルターパラメータがある場合）
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('search') || urlParams.has('translation_languages') || 
+          urlParams.has('test_status') || urlParams.has('accuracy_range') ||
+          urlParams.has('date_range') || urlParams.has('sort_by')) {
+        tabFilter.click();
+      }
       
       // 削除ボタンのイベントハンドラを設定
       document.querySelectorAll('.delete-word').forEach(function(button) {

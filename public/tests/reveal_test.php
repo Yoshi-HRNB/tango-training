@@ -1143,9 +1143,9 @@
      */
     function doRetryTest() {
       // サーバ側で再テストを行うように設定
-      fetch('set_retry_test.php')
+      fetch('test_retry_branch_up.php')
         .then(res => {
-          window.location.href = 'test_config.php'; 
+          window.location.href = 'reveal_test.php'; 
         })
         .catch(err => {
           alert('エラーが発生しました: ' + err.message);

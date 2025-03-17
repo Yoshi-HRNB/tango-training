@@ -92,8 +92,36 @@ class WordController
             }
 
             // テストフィルタ
-            // 例: ['low_accuracy' => true, 'unseen_days' => 7] などを想定
             if (!empty($testFilter)) {
+                // テスト状況フィルター
+                if (!empty($testFilter['has_been_tested'])) {
+                    $conditions[] = "ws.test_count > 0";
+                }
+                
+                if (!empty($testFilter['not_tested'])) {
+                    $conditions[] = "(ws.test_count IS NULL OR ws.test_count = 0)";
+                }
+                
+                // 正解率フィルター
+                if (!empty($testFilter['min_accuracy_rate'])) {
+                    $minAccuracyRate = (int)$testFilter['min_accuracy_rate'];
+                    // テストしていない単語は除外
+                    $conditions[] = "ws.test_count > 0 AND ws.accuracy_rate >= {$minAccuracyRate}";
+                }
+                
+                if (!empty($testFilter['max_accuracy_rate'])) {
+                    $maxAccuracyRate = (int)$testFilter['max_accuracy_rate'];
+                    // テストしていない単語は含む
+                    $conditions[] = "(ws.test_count IS NULL OR ws.accuracy_rate <= {$maxAccuracyRate})";
+                }
+                
+                // 登録日フィルター
+                if (!empty($testFilter['registration_start_date'])) {
+                    $registrationStartDate = $testFilter['registration_start_date'];
+                    $conditions[] = "w.created_at >= :registration_start_date";
+                    $params[':registration_start_date'] = $registrationStartDate;
+                }
+                
                 // 1. 学習状況に関するフィルター
                 
                 // テスト回数制限: 指定回数以上テストした単語を除外
@@ -121,26 +149,7 @@ class WordController
                     $conditions[] = "COALESCE(ws.accuracy_rate, 0) < 80";
                 }
                 
-                // 指定の正解率以上の単語を除外
-                if (!empty($testFilter['max_accuracy_rate'])) {
-                    $maxAccuracyRate = (int)$testFilter['max_accuracy_rate'];
-                    $conditions[] = "COALESCE(ws.accuracy_rate, 0) < {$maxAccuracyRate}";
-                }
-                
                 // 3. 期間・登録日に関するフィルター
-                
-                // 登録期間：指定期間内に登録された単語のみを表示
-                if (!empty($testFilter['registration_start_date'])) {
-                    $registrationStartDate = $testFilter['registration_start_date'] . ' 00:00:00';
-                    $conditions[] = "w.created_at >= :registration_start_date";
-                    $params[':registration_start_date'] = $registrationStartDate;
-                }
-                
-                if (!empty($testFilter['registration_end_date'])) {
-                    $registrationEndDate = $testFilter['registration_end_date'] . ' 23:59:59';
-                    $conditions[] = "w.created_at <= :registration_end_date";
-                    $params[':registration_end_date'] = $registrationEndDate;
-                }
                 
                 // テスト実施日: 指定期間内にテストした単語を表示
                 if (!empty($testFilter['last_test_start_date'])) {
@@ -160,7 +169,27 @@ class WordController
                 $sql .= " AND " . implode(" AND ", $conditions);
             }
 
-            $sql .= " GROUP BY w.word_id ORDER BY w.word_id DESC";
+            $sql .= " GROUP BY w.word_id";
+            
+            // 並び替え
+            if (!empty($testFilter['sort_by'])) {
+                switch ($testFilter['sort_by']) {
+                    case 'oldest':
+                        $sql .= " ORDER BY w.created_at ASC";
+                        break;
+                    case 'accuracy_asc':
+                        $sql .= " ORDER BY COALESCE(ws.accuracy_rate, 0) ASC, w.word_id DESC";
+                        break;
+                    case 'accuracy_desc':
+                        $sql .= " ORDER BY COALESCE(ws.accuracy_rate, 0) DESC, w.word_id DESC";
+                        break;
+                    case 'newest':
+                    default:
+                        $sql .= " ORDER BY w.word_id DESC";
+                }
+            } else {
+                $sql .= " ORDER BY w.word_id DESC";
+            }
 
             $stmt = $this->pdo->prepare($sql);
 
