@@ -43,37 +43,65 @@ $branch_id = $_SESSION['branch_id'];              // 今回実施するテスト
 
 // 1) もし isRetryTest なら、直前の誤答単語を used_test_words から再抽出
 if ($isRetryTest) {
-    // 直前の test_id
-    $lastTestId = $_SESSION['last_test_id'] ?? null;
-    if (!$lastTestId) {
+    // 現在のtest_id（再テスト時は同じtest_idを使う）
+    $testId = $_SESSION['test_id'] ?? null;
+    if (!$testId) {
         http_response_code(400);
-        echo json_encode(['error' => 'No previous test found for retry_incorrect']);
+        echo json_encode(['error' => 'No test ID found for retry']);
         exit;
     }
     try {
+        // デバッグ用の変数
+        $debug_vars = [
+            'is_retry_test' => $isRetryTest,
+            'test_id' => $testId,
+            'branch_id' => $branch_id,
+            'user_id' => $user_id,
+            'session' => array_keys($_SESSION)
+        ];
+        
         // まずは誤答のword_idを取得
         $sql = "
-            SELECT word_id
-            FROM used_test_words
-            WHERE test_id = :test_id
-              AND branch_id = :branch_id
-              AND is_correct = 0
+            SELECT utw.word_id
+            FROM used_test_words utw
+            WHERE utw.test_id = :test_id
+            AND utw.is_correct = 0
+            ORDER BY utw.created_at DESC
             LIMIT :limit
         ";
-        // 前回テストのbranch_id（枝番）を取得
-        $before_branch_id = (int)$branch_id - 1;
 
         $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':test_id', $lastTestId, PDO::PARAM_INT);
-        $stmt->bindValue(':branch_id', $before_branch_id, PDO::PARAM_INT);
+        $stmt->bindValue(':test_id', $testId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $wrongWords = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-
+        // デバッグ用：データがない場合の詳細情報
         if (empty($wrongWords)) {
+            // テスト用のデータをチェック
+            $checkSql = "SELECT * FROM used_test_words WHERE test_id = :test_id ORDER BY branch_id DESC, created_at DESC LIMIT 10";
+            $checkStmt = $pdo->prepare($checkSql);
+            $checkStmt->execute([':test_id' => $testId]);
+            $testRecords = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // 不正解の単語をチェック
+            $countWrongSql = "SELECT COUNT(*) FROM used_test_words WHERE test_id = :test_id AND is_correct = 0";
+            $countWrongStmt = $pdo->prepare($countWrongSql);
+            $countWrongStmt->execute([':test_id' => $testId]);
+            $wrongCount = $countWrongStmt->fetchColumn();
+            
             // 間違い単語がなければ空配列を返して終了
-            echo json_encode([]);
+            echo json_encode([
+                'status' => 'no_wrong_words',
+                'debug' => [
+                    'test_id' => $testId,
+                    'branch_id' => $branch_id,
+                    'total_records' => count($testRecords),
+                    'wrong_count' => $wrongCount,
+                    'test_records' => $testRecords,
+                    'debug_vars' => $debug_vars
+                ]
+            ]);
             exit;
         }
 
@@ -86,7 +114,10 @@ if ($isRetryTest) {
                 w.word,
                 -- translations
                 GROUP_CONCAT(t.language_code SEPARATOR '|') AS translation_languages,
-                GROUP_CONCAT(t.translation SEPARATOR '|')   AS translations
+                GROUP_CONCAT(t.translation SEPARATOR '|')   AS translations,
+                w.note,
+                w.part_of_speech,
+                w.reading
             FROM words w
             LEFT JOIN translations t ON w.word_id = t.word_id
             WHERE w.user_id = ?

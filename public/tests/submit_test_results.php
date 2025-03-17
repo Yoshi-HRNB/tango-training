@@ -1,4 +1,3 @@
-
 <?php
 /**
  * submit_test_results.php
@@ -46,9 +45,16 @@ $testType    = $_SESSION['test_type'];
 $isRetryTest = $_SESSION['is_retry_test'];
 
 // POSTされてきた回答内容
-$words      = $input['words'] ?? [];
-$userChecks = $input['userChecks'] ?? [];
-$timeSpent  = (int)($input['timeSpent'] ?? 0);
+$testResults = $input['test_results'] ?? [];
+$timeSpent  = (int)($input['elapsed_seconds'] ?? 0);
+
+// test_resultsからwords配列と正誤情報を抽出
+$words = [];
+$userChecks = [];
+foreach ($testResults as $result) {
+    $words[] = ['word_id' => $result['word_id']];
+    $userChecks[] = $result['is_correct'] === 1;
+}
 
 // 問題数と回答数が一致していない場合はエラー
 if (count($words) !== count($userChecks)) {

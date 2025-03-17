@@ -708,6 +708,13 @@
     const startTime = Date.now();
 
     window.onload = async () => {
+      // 再テストの処理が完了したか確認
+      const isRetryTest = localStorage.getItem('isRetryTest');
+      if (isRetryTest) {
+        console.log('再テスト後のリロードです');
+        localStorage.removeItem('isRetryTest');
+      }
+      
       await loadQuestions();
       setupHelpModal();
     };
@@ -750,29 +757,62 @@
      */
     async function loadQuestions() {
       try {
+        console.log('問題データを取得中...');
+        
         // fetch_test_words.php にアクセスし、問題一覧を取得
         const res = await fetch('fetch_test_words.php');
+        console.log('問題データAPIレスポンス:', res.status, res.statusText);
+        
         if (!res.ok) {
           // エラーの場合
           let errorMsg = '問題取得失敗';
           try {
             const errorData = await res.json();
+            console.error('問題取得エラー:', errorData);
             errorMsg += `: ${errorData.error}`;
           } catch(e) {
             // JSONデコード失敗時
+            console.error('JSONデコードエラー:', e);
           }
           document.getElementById('cards-area').innerText = errorMsg;
           return;
         }
+        
         // JSONをパース
-        words = await res.json();
+        const data = await res.json();
+        console.log('取得した問題データ:', data);
+        
+        // デバッグ情報がある場合
+        if (data.status === 'no_wrong_words' && data.debug) {
+          const debugInfo = data.debug;
+          console.log('再テスト用の単語がありません。詳細情報:', debugInfo);
+          document.getElementById('cards-area').innerHTML = `
+            <div style="text-align: center; margin: 30px;">
+              <h3>再テストする単語がありません</h3>
+              <p>前回のテストで間違えた単語データが見つかりませんでした。</p>
+              <a href="../index.php" class="btn btn-outline" style="display: inline-block; margin-top: 20px;">トップへ戻る</a>
+            </div>
+          `;
+          document.getElementById('progress-container').style.display = 'none';
+          document.getElementById('answerButtonsContainer').style.display = 'none';
+          return;
+        }
+        
+        // 通常の単語データ
+        words = Array.isArray(data) ? data : [];
 
         // userChecks 配列を問題数に合わせて初期化 (null=未回答)
         userChecks = new Array(words.length).fill(null);
 
         // もし問題が0件なら終了
         if (words.length === 0) {
-          document.getElementById('cards-area').innerText = '問題がありません。';
+          document.getElementById('cards-area').innerHTML = `
+            <div style="text-align: center; margin: 30px;">
+              <h3>問題がありません</h3>
+              <p>テスト用の単語が見つかりませんでした。</p>
+              <a href="../index.php" class="btn btn-outline" style="display: inline-block; margin-top: 20px;">トップへ戻る</a>
+            </div>
+          `;
           document.getElementById('progress-container').style.display = 'none';
           document.getElementById('answerButtonsContainer').style.display = 'none';
           return;
@@ -791,7 +831,7 @@
         // キーボード操作のイベントリスナーを追加
         setupKeyboardControls();
       } catch (err) {
-        console.error(err);
+        console.error('問題読み込みエラー:', err);
         document.getElementById('cards-area').innerText = '問題取得エラー: ' + err.message;
       }
     }
@@ -1100,6 +1140,8 @@
       
       try {
         // 結果を送信
+        console.log('送信するテスト結果:', {test_results: testResults, elapsed_seconds: elapsedSeconds});
+        
         const res = await fetch('submit_test_results.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1110,10 +1152,13 @@
         });
         
         if (!res.ok) {
-          throw new Error('サーバーエラー');
+          const errorText = await res.text();
+          console.error('サーバーレスポンスエラー:', res.status, errorText);
+          throw new Error(`サーバーエラー (${res.status}): ${errorText}`);
         }
         
         const result = await res.json();
+        console.log('テスト結果送信レスポンス:', result);
         
         if (result.error) {
           throw new Error(result.error);
@@ -1144,10 +1189,23 @@
     function doRetryTest() {
       // サーバ側で再テストを行うように設定
       fetch('test_retry_branch_up.php')
-        .then(res => {
-          window.location.href = 'reveal_test.php'; 
+        .then(res => res.json())
+        .then(data => {
+          console.log('再テスト準備レスポンス:', data);
+          
+          if (data.success) {
+            // テスト結果を保存するために一度リロード
+            console.log('再テストのためリロードします...');
+            localStorage.setItem('isRetryTest', 'true');
+            window.location.href = 'reveal_test.php'; 
+          } else {
+            // エラー発生時はアラート表示
+            console.error('再テスト準備エラー:', data);
+            alert('再テストの準備中にエラーが発生しました: ' + (data.error || '不明なエラー'));
+          }
         })
         .catch(err => {
+          console.error('再テスト準備中の例外:', err);
           alert('エラーが発生しました: ' + err.message);
         });
     }

@@ -18,9 +18,21 @@ if (!isset($_SESSION['test_id'], $_SESSION['branch_id'])) {
 }
 
 // branch_idを+1
-$_SESSION['branch_id'] = ((int)$_SESSION['branch_id']) + 1;
+$old_branch_id = (int)$_SESSION['branch_id'];
+$_SESSION['branch_id'] = $old_branch_id + 1;
+
 // 再テストフラグをtrueに
 $_SESSION['is_retry_test'] = true;
 
-echo json_encode(['success'=>true]);
+// デバッグ用の情報をレスポンスに含める
+echo json_encode([
+    'success' => true,
+    'debug' => [
+        'old_branch_id' => $old_branch_id,
+        'new_branch_id' => $_SESSION['branch_id'],
+        'test_id' => $_SESSION['test_id'],
+        'is_retry_test' => $_SESSION['is_retry_test'],
+        'session_keys' => array_keys($_SESSION)
+    ]
+]);
 
