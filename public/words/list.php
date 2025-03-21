@@ -565,7 +565,12 @@ foreach ($words as $word) {
             <?php if (count($words) > 0): ?>
               <?php foreach ($words as $w): ?>
                 <tr>
-                  <td data-label="単語"><?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?></td>
+                  <td data-label="単語">
+                    <?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>
+                    <?php if ($w['language_code'] === 'ja' && !empty($w['reading'])): ?>
+                      <br><small class="text-muted"><?php echo htmlspecialchars($w['reading'], ENT_QUOTES, 'UTF-8'); ?></small>
+                    <?php endif; ?>
+                  </td>
                   <td data-label="品詞"><?php echo htmlspecialchars($w['part_of_speech'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                   <td data-label="言語"><?php echo htmlspecialchars(LanguageCode::getNameFromCode($w['language_code']), ENT_QUOTES, 'UTF-8'); ?></td>
                   <td data-label="翻訳" class="translations-cell">
