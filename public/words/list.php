@@ -123,6 +123,7 @@ foreach ($words as $word) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
   <style>
     /* 追加スタイル */
     .dashboard {
@@ -325,6 +326,37 @@ foreach ($words as $word) {
         width: 100%;
         margin-bottom: 0.5rem;
       }
+    }
+    
+    /* 音声再生ボタンのスタイル */
+    .speak-button {
+      background-color: #4a6da7;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-right: 8px;
+    }
+    
+    .speak-button:hover {
+      background-color: #3a5d97;
+      transform: scale(1.1);
+    }
+    
+    .speak-button i {
+      font-size: 16px;
+    }
+    
+    .word-cell {
+      display: flex;
+      align-items: center;
     }
   </style>
 </head>
@@ -566,10 +598,17 @@ foreach ($words as $word) {
               <?php foreach ($words as $w): ?>
                 <tr>
                   <td data-label="単語">
-                    <?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>
-                    <?php if ($w['language_code'] === 'ja' && !empty($w['reading'])): ?>
-                      <br><small class="text-muted"><?php echo htmlspecialchars($w['reading'], ENT_QUOTES, 'UTF-8'); ?></small>
-                    <?php endif; ?>
+                    <div class="word-cell">
+                      <button class="speak-button" onclick="playPronunciation('<?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($w['language_code'], ENT_QUOTES, 'UTF-8'); ?>')">
+                        <i class="fas fa-volume-up"></i>
+                      </button>
+                      <div>
+                        <?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>
+                        <?php if ($w['language_code'] === 'ja' && !empty($w['reading'])): ?>
+                          <br><small class="text-muted"><?php echo htmlspecialchars($w['reading'], ENT_QUOTES, 'UTF-8'); ?></small>
+                        <?php endif; ?>
+                      </div>
+                    </div>
                   </td>
                   <td data-label="品詞"><?php echo htmlspecialchars($w['part_of_speech'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                   <td data-label="言語"><?php echo htmlspecialchars(LanguageCode::getNameFromCode($w['language_code']), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -702,6 +741,45 @@ foreach ($words as $word) {
         });
       });
     });
+    
+    // 音声再生機能の追加
+    function playPronunciation(word, languageCode) {
+      // 言語コードをGoogle Translate用のコードに変換
+      const googleLangCode = languageCode === 'ja' ? 'ja' : 'en';
+      
+      // サーバーサイドプロキシを利用して音声データを取得
+      const audioUrl = `../tts_proxy.php?tl=${googleLangCode}&q=${encodeURIComponent(word)}`;
+      
+      // デバッグ出力（開発時のみ）
+      console.log('音声URL:', audioUrl);
+      
+      try {
+        // 音声を再生
+        const audio = new Audio(audioUrl);
+        
+        // 音声再生前にロードイベントを確認
+        audio.addEventListener('canplaythrough', () => {
+          console.log('音声ロード完了、再生開始');
+        });
+        
+        // エラーハンドリング
+        audio.onerror = function(e) {
+          console.error('音声読み込みエラー:', e);
+          alert(`音声の再生に失敗しました。`);
+        };
+        
+        // 再生開始
+        audio.play().then(() => {
+          console.log('音声再生開始');
+        }).catch(error => {
+          console.error('音声再生APIエラー:', error);
+          alert('音声の再生に失敗しました。ブラウザの設定を確認してください。');
+        });
+      } catch (e) {
+        console.error('予期せぬエラー:', e);
+        alert('音声再生中に予期せぬエラーが発生しました。');
+      }
+    }
   </script>
 </body>
 </html>

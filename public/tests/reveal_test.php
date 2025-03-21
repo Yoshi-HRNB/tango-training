@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
     :root {
       --primary-color: #4a6da7;
@@ -178,6 +179,32 @@
       background-color: var(--primary-light);
       transform: rotateY(180deg);
       border: 1px solid var(--gray-medium);
+    }
+    
+    /* 音声再生ボタンのスタイル */
+    .speak-button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin: 10px auto;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .speak-button:hover {
+      background-color: var(--primary-dark);
+      transform: scale(1.1);
+    }
+    
+    .speak-button i {
+      font-size: 20px;
     }
     
     /* ボタンコンテナのスタイル */
@@ -939,6 +966,9 @@
               <div class="text-center">
                 <h2 style="font-size: 1.8rem; margin-bottom: 15px;">${item.word}</h2>
                 <p style="color: #666; font-size: 1rem;">[${item.language_code}]</p>
+                <button class="speak-button" onclick="playPronunciation('${item.word}', '${item.language_code}')">
+                  <i class="fas fa-volume-up"></i>
+                </button>
               </div>
             </div>
             <div class="card-face card-back">
@@ -972,21 +1002,23 @@
       
       // メッセージを非表示に
       const messageEl = document.getElementById('message');
-      messageEl.style.display = 'none'; // 明示的に非表示
+      messageEl.style.display = 'none';
       
       // カードクリックで裏表を反転
       const flashCard = document.getElementById('flashCard');
       if (flashCard) {
-        flashCard.addEventListener('click', function() {
+        flashCard.addEventListener('click', function(e) {
+          // 音声再生ボタンがクリックされた場合は裏返さない
+          if (e.target.closest('.speak-button')) {
+            return;
+          }
           this.classList.toggle('is-flipped');
           
-          // カードが裏返されるたびに高さを調整
           setTimeout(() => {
             adjustCardHeight();
-          }, 300); // トランジションが完了した後に実行
+          }, 300);
         });
         
-        // 最初に高さを調整 - 複数回呼び出して確実に調整
         setTimeout(() => {
           adjustCardHeight();
         }, 100);
@@ -1000,7 +1032,6 @@
         }, 500);
       }
 
-      // プログレスバーを更新
       updateProgress();
     }
 
@@ -1215,6 +1246,45 @@
      */
     function showSummary() {
       window.location.href = 'test_summary.php';
+    }
+
+    // 音声再生機能の追加
+    function playPronunciation(word, languageCode) {
+      // 言語コードをGoogle Translate用のコードに変換
+      const googleLangCode = languageCode === 'ja' ? 'ja' : 'en';
+      
+      // サーバーサイドプロキシを利用して音声データを取得
+      const audioUrl = `../tts_proxy.php?tl=${googleLangCode}&q=${encodeURIComponent(word)}`;
+      
+      // デバッグ出力（開発時のみ）
+      console.log('音声URL:', audioUrl);
+      
+      try {
+        // 音声を再生
+        const audio = new Audio(audioUrl);
+        
+        // 音声再生前にロードイベントを確認
+        audio.addEventListener('canplaythrough', () => {
+          console.log('音声ロード完了、再生開始');
+        });
+        
+        // エラーハンドリング
+        audio.onerror = function(e) {
+          console.error('音声読み込みエラー:', e);
+          alert(`音声の再生に失敗しました。`);
+        };
+        
+        // 再生開始
+        audio.play().then(() => {
+          console.log('音声再生開始');
+        }).catch(error => {
+          console.error('音声再生APIエラー:', error);
+          alert('音声の再生に失敗しました。ブラウザの設定を確認してください。');
+        });
+      } catch (e) {
+        console.error('予期せぬエラー:', e);
+        alert('音声再生中に予期せぬエラーが発生しました。');
+      }
     }
   </script>
 </body>
