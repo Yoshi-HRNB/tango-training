@@ -117,9 +117,15 @@ class WordController
                 
                 // 登録日フィルター
                 if (!empty($testFilter['registration_start_date'])) {
-                    $registrationStartDate = $testFilter['registration_start_date'];
+                    $registrationStartDate = $testFilter['registration_start_date'] . ' 00:00:00';
                     $conditions[] = "w.created_at >= :registration_start_date";
                     $params[':registration_start_date'] = $registrationStartDate;
+                }
+                
+                if (!empty($testFilter['registration_end_date'])) {
+                    $registrationEndDate = $testFilter['registration_end_date'] . ' 23:59:59';
+                    $conditions[] = "w.created_at <= :registration_end_date";
+                    $params[':registration_end_date'] = $registrationEndDate;
                 }
                 
                 // 1. 学習状況に関するフィルター

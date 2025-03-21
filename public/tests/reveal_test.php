@@ -815,13 +815,17 @@
           console.log('再テスト用の単語がありません。詳細情報:', debugInfo);
           document.getElementById('cards-area').innerHTML = `
             <div style="text-align: center; margin: 30px;">
-              <h3>再テストする単語がありません</h3>
-              <p>前回のテストで間違えた単語データが見つかりませんでした。</p>
-              <a href="../index.php" class="btn btn-outline" style="display: inline-block; margin-top: 20px;">トップへ戻る</a>
+              <h3>おめでとうございます！</h3>
+              <p>前回のテストでは全問正解しました。再テストする単語はありません。</p>
             </div>
           `;
           document.getElementById('progress-container').style.display = 'none';
           document.getElementById('answerButtonsContainer').style.display = 'none';
+          
+          // テスト完了状態にし、サマリー表示ボタンを表示
+          document.getElementById('post-submit-area').style.display = 'block';
+          document.getElementById('retryBtn').style.display = 'none';
+          document.getElementById('summaryBtn').style.display = 'inline-block';
           return;
         }
         

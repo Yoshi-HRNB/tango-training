@@ -65,6 +65,7 @@ if ($isRetryTest) {
             SELECT utw.word_id
             FROM used_test_words utw
             WHERE utw.test_id = :test_id
+            AND utw.branch_id = :branch_id - 1
             AND utw.is_correct = 0
             ORDER BY utw.created_at DESC
             LIMIT :limit
@@ -72,6 +73,7 @@ if ($isRetryTest) {
 
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':test_id', $testId, PDO::PARAM_INT);
+        $stmt->bindValue(':branch_id', $branch_id, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $wrongWords = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -79,15 +81,21 @@ if ($isRetryTest) {
         // デバッグ用：データがない場合の詳細情報
         if (empty($wrongWords)) {
             // テスト用のデータをチェック
-            $checkSql = "SELECT * FROM used_test_words WHERE test_id = :test_id ORDER BY branch_id DESC, created_at DESC LIMIT 10";
+            $checkSql = "SELECT * FROM used_test_words WHERE test_id = :test_id AND branch_id = :branch_id - 1 ORDER BY created_at DESC LIMIT 10";
             $checkStmt = $pdo->prepare($checkSql);
-            $checkStmt->execute([':test_id' => $testId]);
+            $checkStmt->execute([
+                ':test_id' => $testId,
+                ':branch_id' => $branch_id
+            ]);
             $testRecords = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
             
             // 不正解の単語をチェック
-            $countWrongSql = "SELECT COUNT(*) FROM used_test_words WHERE test_id = :test_id AND is_correct = 0";
+            $countWrongSql = "SELECT COUNT(*) FROM used_test_words WHERE test_id = :test_id AND branch_id = :branch_id - 1 AND is_correct = 0";
             $countWrongStmt = $pdo->prepare($countWrongSql);
-            $countWrongStmt->execute([':test_id' => $testId]);
+            $countWrongStmt->execute([
+                ':test_id' => $testId,
+                ':branch_id' => $branch_id
+            ]);
             $wrongCount = $countWrongStmt->fetchColumn();
             
             // 間違い単語がなければ空配列を返して終了
