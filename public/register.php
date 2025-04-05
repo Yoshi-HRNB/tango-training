@@ -4,7 +4,19 @@
  * ユーザー登録画面（任意機能）。
  * 成功するとログイン画面へ飛ばす例。
  */
-session_start();
+
+// エラー表示を有効化
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// 初期化処理
+try {
+    require_once __DIR__ . '/../src/init.php';
+} catch (Exception $e) {
+    echo '<pre>エラーが発生しました: ' . $e->getMessage() . "\n";
+    echo $e->getTraceAsString() . '</pre>';
+}
 
 // 既にログインしている場合はトップへ
 if (isset($_SESSION['user_id'])) {
@@ -27,9 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password !== $password2) {
         $message = 'パスワードが一致しません。';
     } else {
-        require_once __DIR__ . '/../src/Database.php';
-        require_once __DIR__ . '/../src/Auth.php';
-
+        // init.php ですでに読み込み済み
         $db = new \TangoTraining\Database();
         $auth = new \TangoTraining\Auth($db);
 

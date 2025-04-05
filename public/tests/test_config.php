@@ -25,22 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $limit      = (int)($_POST['limit']       ?? 5);
     $language   = trim($_POST['language_code'] ?? '');
     $answerLang = trim($_POST['answer_lang']   ?? '');
-    
-    // 各フィルター適用の有無をチェックボックスで確認
-    $enableMinTestCount = isset($_POST['enable_min_test_count']);
-    $enableUnseenDays = isset($_POST['enable_unseen_days']);
-    $enableLowAccuracy = isset($_POST['enable_low_accuracy']);
-    $enableMaxAccuracyRate = isset($_POST['enable_max_accuracy_rate']);
-    $enableRegistrationDate = isset($_POST['enable_registration_date']);
-    $enableLastTestDate = isset($_POST['enable_last_test_date']);
-    
+
     // 各フィルターの値を取得
     $filterMinTestCount = (int)($_POST['filter_min_test_count'] ?? 0);
     $filterUnseenDays   = (int)($_POST['filter_unseen_days'] ?? 0);
-    
-    $filterLowAccuracy = isset($_POST['filter_low_accuracy']);
     $filterMaxAccuracyRate = (int)($_POST['filter_max_accuracy_rate'] ?? 0);
-    
     $filterRegistrationStartDate = trim($_POST['filter_registration_start_date'] ?? '');
     $filterRegistrationEndDate = trim($_POST['filter_registration_end_date'] ?? '');
     $filterLastTestStartDate = trim($_POST['filter_last_test_start_date'] ?? '');
@@ -57,22 +46,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['test_language'] = $language;
         $_SESSION['answer_lang']   = $answerLang;
 
-        // テストフィルタを拡張して新しいフィルター項目を追加
-        // チェックボックスがオンの場合のみフィルターを適用
+        // フィルター値が入力されている場合のみセッションに保存
         $_SESSION['test_filter'] = [
             // 学習状況に関するフィルター
-            'min_test_count' => $enableMinTestCount && $filterMinTestCount > 0 ? $filterMinTestCount : null,
-            'unseen_days'    => $enableUnseenDays && $filterUnseenDays > 0 ? $filterUnseenDays : null,
-            
+            'min_test_count' => $filterMinTestCount > 0 ? $filterMinTestCount : null,
+            'unseen_days'    => $filterUnseenDays > 0 ? $filterUnseenDays : null,
+
             // 正答率に関するフィルター
-            'low_accuracy'      => $enableLowAccuracy && $filterLowAccuracy,
-            'max_accuracy_rate' => $enableMaxAccuracyRate && $filterMaxAccuracyRate > 0 ? $filterMaxAccuracyRate : null,
-            
+            'max_accuracy_rate' => $filterMaxAccuracyRate > 0 ? $filterMaxAccuracyRate : null,
+
             // 期間・登録日に関するフィルター
-            'registration_start_date' => $enableRegistrationDate && !empty($filterRegistrationStartDate) ? $filterRegistrationStartDate : null,
-            'registration_end_date'   => $enableRegistrationDate && !empty($filterRegistrationEndDate) ? $filterRegistrationEndDate : null,
-            'last_test_start_date'    => $enableLastTestDate && !empty($filterLastTestStartDate) ? $filterLastTestStartDate : null,
-            'last_test_end_date'      => $enableLastTestDate && !empty($filterLastTestEndDate) ? $filterLastTestEndDate : null,
+            'registration_start_date' => !empty($filterRegistrationStartDate) ? $filterRegistrationStartDate : null,
+            'registration_end_date'   => !empty($filterRegistrationEndDate) ? $filterRegistrationEndDate : null,
+            'last_test_start_date'    => !empty($filterLastTestStartDate) ? $filterLastTestStartDate : null,
+            'last_test_end_date'      => !empty($filterLastTestEndDate) ? $filterLastTestEndDate : null,
         ];
 
         // フォーム送信直後に start_test.php へ飛ばし、DBのtestsにINSERTする
@@ -205,12 +192,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 align-items: center;
             }
             .form-label {
-                width: 140px;
+                width: 180px; /* ラベル幅を調整 */
                 margin-bottom: 0;
                 margin-right: 16px;
+                flex-shrink: 0; /* ラベルが縮まないように */
             }
             .form-input, .form-select {
                 flex: 1;
+            }
+            .filter-input-group { /* フィルター入力部分のグループ化 */
+                display: flex;
+                align-items: center;
+                flex: 1;
+            }
+            .filter-input-group .form-input {
+                width: 80px;
+                margin-right: 8px;
+                flex: initial; /* 幅を固定 */
+            }
+            .filter-input-group span {
+                 white-space: nowrap; /* 説明文が改行しないように */
+            }
+             .date-filter-group { /* 日付フィルターのグループ */
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 1;
+            }
+            .date-filter-group > div { /* 開始日/終了日の行 */
+                display: flex;
+                align-items: center;
+            }
+            .date-filter-group label {
+                 width: 60px;
+                 margin-right: 8px;
+                 margin-bottom: 0; /* date用ラベルのボトムマージン削除 */
             }
         }
     </style>
@@ -242,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label class="form-label" for="limit">出題数:</label>
                     <input type="number" id="limit" name="limit" class="form-input"
                            value="<?php echo isset($_POST['limit']) ? (int)$_POST['limit'] : 5; ?>"
-                           min="1" max="100">
+                           min="1" max="100" placeholder="例: 5">
                 </div>
 
                 <div class="form-row">
@@ -268,122 +284,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="section-card">
                 <div class="section-title">フィルター設定（オプション）</div>
-                
+
                 <!-- 1. 学習状況 -->
                 <div class="form-group-title">学習状況</div>
-                
+
                 <!-- テスト回数制限 -->
                 <div class="form-row">
-                    <div class="filter-checkbox">
-                        <input type="checkbox" id="enable_min_test_count" name="enable_min_test_count"
-                               <?php echo (isset($_POST['enable_min_test_count'])) ? 'checked' : ''; ?>>
-                        <label for="enable_min_test_count">テスト回数制限:</label>
-                    </div>
-                    <div style="display: flex; align-items: center;">
+                    <label class="form-label" for="filter_min_test_count">テスト回数上限:</label>
+                    <div class="filter-input-group">
                         <input type="number" id="filter_min_test_count" name="filter_min_test_count" class="form-input"
-                               style="width: 80px; margin-right: 8px;"
-                               value="<?php echo isset($_POST['filter_min_test_count']) ? (int)$_POST['filter_min_test_count'] : 5; ?>"
-                               min="0" max="1000">
+                               value="<?php echo isset($_POST['filter_min_test_count']) ? (int)$_POST['filter_min_test_count'] : ''; ?>"
+                               min="1" max="1000" placeholder="例: 5">
                         <span>回以上テストした単語を除外</span>
                     </div>
                 </div>
-                
+
                 <!-- 学習頻度 -->
                 <div class="form-row">
-                    <div class="filter-checkbox">
-                        <input type="checkbox" id="enable_unseen_days" name="enable_unseen_days"
-                               <?php echo (isset($_POST['enable_unseen_days'])) ? 'checked' : ''; ?>>
-                        <label for="enable_unseen_days">学習頻度:</label>
-                    </div>
-                    <div style="display: flex; align-items: center;">
+                    <label class="form-label" for="filter_unseen_days">未テスト期間:</label>
+                     <div class="filter-input-group">
                         <input type="number" id="filter_unseen_days" name="filter_unseen_days" class="form-input"
-                               style="width: 80px; margin-right: 8px;"
-                               value="<?php echo isset($_POST['filter_unseen_days']) ? (int)$_POST['filter_unseen_days'] : 7; ?>"
-                               min="0" max="365">
+                               value="<?php echo isset($_POST['filter_unseen_days']) ? (int)$_POST['filter_unseen_days'] : ''; ?>"
+                               min="1" max="365" placeholder="例: 7">
                         <span>日以上テストしていない単語のみ</span>
                     </div>
                 </div>
-                
+
                 <!-- 2. 正答率・難易度 -->
                 <div class="form-group-title">正答率・難易度</div>
-                
-                <!-- 従来の低正解率チェックボックスは残しつつ、対応するenableチェックボックスを追加 -->
-                <div class="form-row">
-                    <div class="filter-checkbox">
-                        <input type="checkbox" id="enable_low_accuracy" name="enable_low_accuracy"
-                               <?php echo (isset($_POST['enable_low_accuracy'])) ? 'checked' : ''; ?>>
-                        <label for="enable_low_accuracy">低正解率フィルター:</label>
-                    </div>
-                    <div>
-                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                            <input type="checkbox" name="filter_low_accuracy" 
-                                <?php echo (isset($_POST['filter_low_accuracy']) && $_POST['filter_low_accuracy']) ? 'checked' : ''; ?>>
-                            <span style="margin-left: 8px;">正解率の低い単語だけ出題する</span>
-                        </label>
-                    </div>
-                </div>
-                
+
                 <!-- 数値指定の正解率フィルター -->
                 <div class="form-row">
-                    <div class="filter-checkbox">
-                        <input type="checkbox" id="enable_max_accuracy_rate" name="enable_max_accuracy_rate"
-                               <?php echo (isset($_POST['enable_max_accuracy_rate'])) ? 'checked' : ''; ?>>
-                        <label for="enable_max_accuracy_rate">正解率上限:</label>
-                    </div>
-                    <div style="display: flex; align-items: center;">
+                    <label class="form-label" for="filter_max_accuracy_rate">正解率上限:</label>
+                     <div class="filter-input-group">
                         <input type="number" id="filter_max_accuracy_rate" name="filter_max_accuracy_rate" class="form-input"
-                               style="width: 80px; margin-right: 8px;"
-                               value="<?php echo isset($_POST['filter_max_accuracy_rate']) ? (int)$_POST['filter_max_accuracy_rate'] : 80; ?>"
-                               min="0" max="100">
+                               value="<?php echo isset($_POST['filter_max_accuracy_rate']) ? (int)$_POST['filter_max_accuracy_rate'] : ''; ?>"
+                               min="0" max="100" placeholder="例: 80">
                         <span>％以上の正解率の単語を除外</span>
                     </div>
                 </div>
-                
+
                 <!-- 3. 期間・登録日 -->
                 <div class="form-group-title">期間・登録日</div>
-                
+
                 <!-- 登録期間 -->
                 <div class="form-row">
-                    <div class="filter-checkbox">
-                        <input type="checkbox" id="enable_registration_date" name="enable_registration_date"
-                               <?php echo (isset($_POST['enable_registration_date'])) ? 'checked' : ''; ?>>
-                        <label for="enable_registration_date">登録期間:</label>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; align-items: center;">
-                            <label for="filter_registration_start_date" style="width: 60px;">開始日:</label>
+                    <label class="form-label">登録期間:</label>
+                     <div class="date-filter-group">
+                        <div>
+                            <label for="filter_registration_start_date">開始日:</label>
                             <input type="date" id="filter_registration_start_date" name="filter_registration_start_date" class="form-input"
                                    value="<?php echo isset($_POST['filter_registration_start_date']) ? $_POST['filter_registration_start_date'] : ''; ?>">
                         </div>
-                        <div style="display: flex; align-items: center;">
-                            <label for="filter_registration_end_date" style="width: 60px;">終了日:</label>
+                        <div>
+                            <label for="filter_registration_end_date">終了日:</label>
                             <input type="date" id="filter_registration_end_date" name="filter_registration_end_date" class="form-input"
                                    value="<?php echo isset($_POST['filter_registration_end_date']) ? $_POST['filter_registration_end_date'] : ''; ?>">
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- テスト実施日 -->
                 <div class="form-row">
-                    <div class="filter-checkbox">
-                        <input type="checkbox" id="enable_last_test_date" name="enable_last_test_date"
-                               <?php echo (isset($_POST['enable_last_test_date'])) ? 'checked' : ''; ?>>
-                        <label for="enable_last_test_date">テスト実施日:</label>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; align-items: center;">
-                            <label for="filter_last_test_start_date" style="width: 60px;">開始日:</label>
+                    <label class="form-label">最終テスト日:</label>
+                     <div class="date-filter-group">
+                        <div>
+                            <label for="filter_last_test_start_date">開始日:</label>
                             <input type="date" id="filter_last_test_start_date" name="filter_last_test_start_date" class="form-input"
                                    value="<?php echo isset($_POST['filter_last_test_start_date']) ? $_POST['filter_last_test_start_date'] : ''; ?>">
                         </div>
-                        <div style="display: flex; align-items: center;">
-                            <label for="filter_last_test_end_date" style="width: 60px;">終了日:</label>
+                        <div>
+                            <label for="filter_last_test_end_date">終了日:</label>
                             <input type="date" id="filter_last_test_end_date" name="filter_last_test_end_date" class="form-input"
                                    value="<?php echo isset($_POST['filter_last_test_end_date']) ? $_POST['filter_last_test_end_date'] : ''; ?>">
                         </div>
                     </div>
                 </div>
-                
+
             </div>
 
             <button type="submit" class="submit-button">テスト開始</button>

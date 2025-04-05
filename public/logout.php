@@ -4,18 +4,36 @@
  * ログアウト処理。セッションを破棄して確認メッセージを表示。
  */
 
+// エラー表示
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 
-// ログアウト処理（直接リダイレクトではなくメッセージ表示に変更）
+// AuthクラスとDatabaseクラスを読み込む
+require_once __DIR__ . '/../src/Database.php';
+require_once __DIR__ . '/../src/Auth.php';
+
+// ログアウト処理（Authクラスを利用）
 $wasLoggedIn = isset($_SESSION['user_id']);
 $userName = $_SESSION['user_name'] ?? 'ユーザー';
 
-// セッション破棄
-session_unset();
-session_destroy();
+// DB接続を取得
+try {
+    $db = new \TangoTraining\Database();
+
+    // Auth::logout を呼び出してセッションとRememberMeトークンを処理
+    \TangoTraining\Auth::logout($db);
+} catch (Exception $e) {
+    // エラーの場合は少なくともセッションをクリア
+    error_log("ログアウト処理エラー: " . $e->getMessage());
+    $_SESSION = [];
+    session_destroy();
+}
 
 // 新しいセッションを開始（メッセージ表示用）
-session_start();
+session_start(); // Auth::logout内でdestroyされているので再度開始
 if ($wasLoggedIn) {
     // ログアウト成功メッセージをフラッシュメッセージとして設定
     $_SESSION['flash_message'] = 'ログアウトしました。';

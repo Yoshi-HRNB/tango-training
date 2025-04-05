@@ -5,7 +5,20 @@
  * ログイン状態やメニューへのリンクなどを表示。
  */
 
-session_start();
+// エラー表示を有効化（デバッグ用）
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// 初期化処理を try-catch で囲む
+try {
+    require_once __DIR__ . '/../src/init.php';
+} catch (Exception $e) {
+    echo '<pre>エラーが発生しました: ' . $e->getMessage() . "\n";
+    echo $e->getTraceAsString() . '</pre>';
+    // エラーを表示しながらも処理は続行
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="ja">

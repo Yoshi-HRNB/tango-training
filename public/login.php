@@ -5,12 +5,18 @@
  * 成功すればセッションに user_id を格納してトップへ遷移。
  */
 
-session_start();
-
 // エラーログを表示するための設定
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+// 初期化処理をtry-catchで囲む
+try {
+    require_once __DIR__ . '/../src/init.php';
+} catch (Exception $e) {
+    echo '<pre>エラーが発生しました: ' . $e->getMessage() . "\n";
+    echo $e->getTraceAsString() . '</pre>';
+}
 
 // すでにログイン済みならトップへリダイレクト
 if (isset($_SESSION['user_id'])) {
@@ -30,14 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'メールアドレスとパスワードを入力してください。';
     } else {
         // Authクラスで認証を行う
-        require_once __DIR__ . '/../src/Database.php';
-        require_once __DIR__ . '/../src/Auth.php';
-
+        // 注: src/init.php ですでに読み込まれているのでrequire不要
+        
         $db = new \TangoTraining\Database();
         $auth = new \TangoTraining\Auth($db);
 
         // ログイン試行
-        $user = $auth->login($email, $password);
+        $rememberMe = isset($_POST['remember_me']); // チェックボックスの値を取得
+        $user = $auth->login($email, $password, $rememberMe); // 第3引数に渡す
 
         if ($user !== false) {
             // 認証成功 → セッションにユーザー情報を格納
@@ -234,6 +240,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: var(--primary-color);
     }
     
+    /* チェックボックス用のスタイル */
+    .form-check {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .form-check-input {
+      margin-right: 8px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .form-check-label {
+      cursor: pointer;
+      user-select: none;
+      color: #666;
+    }
+    
     @media (max-width: 576px) {
       .container {
         padding: 15px;
@@ -280,7 +306,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <input type="password" class="form-control" id="password" name="password" required placeholder="パスワードを入力">
         </div>
       </div>
-      
+
+      <div class="form-group form-check">
+        <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me" value="1">
+        <label class="form-check-label" for="remember_me">ログイン状態を保持する</label>
+      </div>
+
       <button type="submit" class="btn">
         <i class="fas fa-sign-in-alt"></i> ログイン
       </button>
