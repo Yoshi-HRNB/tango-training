@@ -340,7 +340,22 @@ class WordController
     public function getWordById(int $word_id)
     {
         try {
-            $stmt = $this->pdo->prepare('SELECT * FROM words WHERE word_id = :word_id');
+            $sql = "
+                SELECT
+                    w.*,
+                    ws.test_count,
+                    ws.correct_count,
+                    ws.wrong_count,
+                    ws.accuracy_rate,
+                    ws.last_test_date
+                FROM
+                    words w
+                LEFT JOIN
+                    word_statistics ws ON w.word_id = ws.word_id
+                WHERE
+                    w.word_id = :word_id
+            ";
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':word_id', $word_id, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);

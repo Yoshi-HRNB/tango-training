@@ -108,9 +108,41 @@ $translations = $wordController->getTranslationsByWordId($id);
         
         <button type="button" id="add-translation" class="btn">翻訳を追加</button>
         
+        <h2>学習状況</h2>
+        <div class="learning-stats-section">
+          <?php if (isset($wordData['test_count']) && $wordData['test_count'] > 0): 
+            $accuracyClass = '';
+            $accuracyRate = (int)$wordData['accuracy_rate'];
+            if ($accuracyRate >= 80) {
+              $accuracyClass = 'accuracy-high';
+            } elseif ($accuracyRate >= 50) {
+              $accuracyClass = 'accuracy-medium';
+            } else {
+              $accuracyClass = 'accuracy-low';
+            }
+          ?>
+            <div class="accuracy-bar">
+              <div class="accuracy-value <?php echo $accuracyClass; ?>" style="width: <?php echo $accuracyRate; ?>%;">
+                <?php echo $accuracyRate; ?>%
+              </div>
+            </div>
+            <div class="test-details">
+              <span>テスト回数: <?php echo (int)$wordData['test_count']; ?>回</span>
+              <span>正解数: <?php echo (int)$wordData['correct_count']; ?>回</span>
+              <span>不正解数: <?php echo (int)$wordData['wrong_count']; ?>回</span>
+              <?php if (!empty($wordData['last_test_date'])): ?>
+                <span>最終テスト日: <?php echo htmlspecialchars(date('Y/m/d H:i', strtotime($wordData['last_test_date'])), ENT_QUOTES, 'UTF-8'); ?></span>
+              <?php endif; ?>
+            </div>
+          <?php else: ?>
+            <p>まだテストされていません。</p>
+          <?php endif; ?>
+        </div>
+        
         <div class="form-actions">
           <a href="list.php" class="btn btn-secondary">キャンセル</a>
           <button type="submit" class="btn btn-primary">更新</button>
+          <button type="button" id="delete-word" class="btn btn-danger">削除</button>
         </div>
       </form>
     </div>
@@ -174,6 +206,20 @@ $translations = $wordController->getTranslationsByWordId($id);
         // 新しく追加した削除ボタンにイベントリスナーを設定
         newRow.querySelector('.remove-translation').addEventListener('click', function() {
           newRow.remove();
+        });
+      }
+      
+      // 削除ボタンの処理
+      const deleteButton = document.getElementById('delete-word');
+      if (deleteButton) {
+        deleteButton.addEventListener('click', function() {
+          const wordId = document.querySelector('input[name="word_id"]').value;
+          const wordText = document.getElementById('word').value;
+          
+          if (confirm(`「${wordText}」を削除してもよろしいですか？\nこの操作は元に戻せません。`)) {
+            // 削除処理用のURLにリダイレクト
+            window.location.href = `delete.php?id=${wordId}`;
+          }
         });
       }
     });

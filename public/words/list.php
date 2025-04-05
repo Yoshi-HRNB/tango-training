@@ -248,26 +248,10 @@ foreach ($words as $word) {
     }
     
     .table td.notes {
-      max-width: 200px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .notes-full {
-      display: none;
-      position: absolute;
-      background: white;
-      border: 1px solid #ddd;
-      padding: 10px;
-      border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      z-index: 100;
-      max-width: 300px;
-    }
-    
-    tr:hover .notes-full {
-      display: block;
+      max-width: none; /* Remove max-width restriction */
+      white-space: normal; /* Allow text to wrap */
+      overflow: visible; /* Ensure content is not hidden */
+      text-overflow: clip; /* Prevent ellipsis */
     }
     
     .filter-section {
@@ -316,16 +300,103 @@ foreach ($words as $word) {
       .filter-section {
         flex-direction: column;
       }
-      
+
       .form-group {
         width: 100%;
         margin-bottom: 1rem;
       }
-      
+
       .btn {
         width: 100%;
         margin-bottom: 0.5rem;
       }
+
+      /* ページタイトルと戻るボタンのみ非表示 */
+      .page-header h1,
+      .page-header .nav-links {
+        display: none;
+      }
+
+      /* テーブルヘッダー行を非表示 */
+      .table thead {
+        display: none; /* !important は不要な場合が多い */
+        /* visibility: hidden; height: 0; overflow: hidden; も試す価値あり */
+      }
+
+      /* レスポンシブテーブルスタイル */
+      .table tbody, .table tr, .table td {
+        display: block;
+        width: 100% !important; /* !importantで上書き */
+        box-sizing: border-box; /* パディングを含めた幅計算 */
+      }
+
+      .table tr {
+        margin-bottom: 1rem; /* 各単語間にスペース */
+        border: 1px solid #eee; /* 単語ごとの境界線を明確に */
+        border-radius: 4px;
+        padding: 0.5rem; /* 内側の余白 */
+      }
+
+      .table td {
+        text-align: right; /* 値を右寄せ */
+        position: relative;
+        padding-left: 50%; /* ラベル表示スペース確保 */
+        border: none; /* 個々のセルの境界線は不要に */
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
+
+      .table td::before {
+        content: attr(data-label); /* data-label属性の内容を表示 */
+        position: absolute;
+        left: 6px; /* 左端からの位置 */
+        width: 45%; /* ラベル表示幅 */
+        padding-right: 10px; /* 値との間隔 */
+        white-space: nowrap; /* ラベルは折り返さない */
+        text-align: left; /* ラベルを左寄せ */
+        font-weight: bold;
+        color: #333; /* ラベルの色 */
+      }
+
+      /* 単語と翻訳の折り返し */
+      .word-cell,
+      .word-cell a,
+      .translation-list li,
+      .notes {
+        word-wrap: break-word; /* 古いブラウザ用 */
+        overflow-wrap: break-word; /* 標準 */
+        white-space: normal; /* 折り返しを許可 */
+        text-align: left; /* 単語セルとノートは左寄せに戻す */
+        padding-left: 0; /* 左パディングをリセット */
+      }
+
+      .word-cell {
+        display: flex; /* 音声ボタンと単語を横並び */
+        align-items: center;
+      }
+      
+      /* 単語セルのラベル調整 */
+      .table td[data-label="単語"]::before,
+      .table td[data-label="翻訳"]::before,
+      .table td[data-label="補足"]::before,
+      .table td[data-label="品詞"]::before {
+        width: auto; /* 幅を自動に */
+        position: static; /* 通常の配置に */
+        display: block; /* ブロック要素にして改行 */
+        margin-bottom: 3px; /* 値との間隔 */
+        font-weight: bold;
+        text-align: left;
+      }
+      
+      .table td[data-label="単語"],
+      .table td[data-label="翻訳"],
+      .table td[data-label="補足"],
+      .table td[data-label="品詞"] {
+        padding-left: 6px; /* 左パディングを戻す */
+        text-align: left;
+      }
+      
+      /* 品詞セルは削除（上の共通スタイルに統合） */
     }
     
     /* 音声再生ボタンのスタイル */
@@ -358,16 +429,49 @@ foreach ($words as $word) {
       display: flex;
       align-items: center;
     }
+    
+    .word-cell i {
+      font-size: 16px;
+    }
+    
+    /* 単語リンクのスタイル強調 */
+    .word-cell a {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #2c3e50;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    
+    .word-cell a:hover {
+      color: #3498db;
+      text-decoration: underline;
+    }
+    
+    /* テーブルヘッダーの強調 */
+    .table th:first-child {
+      font-size: 1.1rem;
+      background-color: #f1f7fc;
+      color: #2c3e50;
+    }
+    
+    /* 単語列のセル強調 */
+    .table td:first-child {
+      background-color: #f8fbff;
+      border-left: 3px solid #3498db;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="card">
-      <h1>単語一覧</h1>
-      
-      <div class="nav-links mb-3">
-        <a href="add_from_picture.php" class="btn btn-success">単語登録へ</a>
-        <a href="../index.php" class="btn btn-secondary">トップへ戻る</a>
+      <div class="page-header">
+        <h1>単語一覧</h1>
+        
+        <div class="nav-links mb-3">
+          <a href="add_from_picture.php" class="btn btn-success">単語登録へ</a>
+          <a href="../index.php" class="btn btn-secondary">トップへ戻る</a>
+        </div>
       </div>
       
       <!-- 単語統計ダッシュボード -->
@@ -586,11 +690,8 @@ foreach ($words as $word) {
             <tr>
               <th>単語</th>
               <th>品詞</th>
-              <th>言語</th>
               <th>翻訳</th>
               <th>補足</th>
-              <th>学習状況</th>
-              <th>アクション</th>
             </tr>
           </thead>
           <tbody>
@@ -603,7 +704,9 @@ foreach ($words as $word) {
                         <i class="fas fa-volume-up"></i>
                       </button>
                       <div>
-                        <?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>
+                        <a href="edit.php?id=<?php echo (int)$w['word_id']; ?>">
+                          <?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>
+                        </a>
                         <?php if ($w['language_code'] === 'ja' && !empty($w['reading'])): ?>
                           <br><small class="text-muted"><?php echo htmlspecialchars($w['reading'], ENT_QUOTES, 'UTF-8'); ?></small>
                         <?php endif; ?>
@@ -611,7 +714,6 @@ foreach ($words as $word) {
                     </div>
                   </td>
                   <td data-label="品詞"><?php echo htmlspecialchars($w['part_of_speech'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
-                  <td data-label="言語"><?php echo htmlspecialchars(LanguageCode::getNameFromCode($w['language_code']), ENT_QUOTES, 'UTF-8'); ?></td>
                   <td data-label="翻訳" class="translations-cell">
                     <?php 
                     if (!empty($w['translations'])) {
@@ -631,48 +733,16 @@ foreach ($words as $word) {
                   </td>
                   <td data-label="補足" class="notes">
                     <?php if (!empty($w['note'])): ?>
-                      <div class="notes-text"><?php echo htmlspecialchars(mb_substr($w['note'], 0, 30), ENT_QUOTES, 'UTF-8'); ?><?php echo mb_strlen($w['note']) > 30 ? '...' : ''; ?></div>
-                      <?php if (mb_strlen($w['note']) > 30): ?>
-                        <div class="notes-full"><?php echo nl2br(htmlspecialchars($w['note'], ENT_QUOTES, 'UTF-8')); ?></div>
-                      <?php endif; ?>
+                      <?php echo nl2br(htmlspecialchars($w['note'], ENT_QUOTES, 'UTF-8')); ?>
                     <?php else: ?>
                       -
                     <?php endif; ?>
-                  </td>
-                  <td data-label="学習状況" class="learning-status">
-                    <?php if (isset($w['test_count']) && $w['test_count'] > 0): 
-                      $accuracyClass = '';
-                      if ((int)$w['accuracy_rate'] >= 80) {
-                        $accuracyClass = 'accuracy-high';
-                      } elseif ((int)$w['accuracy_rate'] >= 50) {
-                        $accuracyClass = 'accuracy-medium';
-                      } else {
-                        $accuracyClass = 'accuracy-low';
-                      }
-                    ?>
-                      <div class="accuracy-bar">
-                        <div class="accuracy-value <?php echo $accuracyClass; ?>" style="width: <?php echo (int)$w['accuracy_rate']; ?>%;">
-                          <?php echo (int)$w['accuracy_rate']; ?>%
-                        </div>
-                      </div>
-                      <div class="test-details">
-                        <span>テスト: <?php echo (int)$w['test_count']; ?>回</span>
-                        <span>正解: <?php echo (int)$w['correct_count']; ?>回</span>
-                        <span>不正解: <?php echo (int)$w['wrong_count']; ?>回</span>
-                      </div>
-                    <?php else: ?>
-                      <span class="badge badge-secondary">未テスト</span>
-                    <?php endif; ?>
-                  </td>
-                  <td data-label="アクション" class="actions-cell">
-                    <a href="edit.php?id=<?php echo (int)$w['word_id']; ?>" class="btn btn-primary btn-sm">編集</a>
-                    <button class="btn btn-danger btn-sm delete-word" data-word-id="<?php echo (int)$w['word_id']; ?>" data-word-text="<?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>">削除</button>
                   </td>
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
               <tr>
-                <td colspan="7" class="text-center">単語が見つかりません。</td>
+                <td colspan="4" class="text-center">単語が見つかりません。</td>
               </tr>
             <?php endif; ?>
           </tbody>
@@ -710,36 +780,6 @@ foreach ($words as $word) {
           urlParams.has('date_range') || urlParams.has('sort_by')) {
         tabFilter.click();
       }
-      
-      // 削除ボタンのイベントハンドラを設定
-      document.querySelectorAll('.delete-word').forEach(function(button) {
-        button.addEventListener('click', function() {
-          const wordId = this.getAttribute('data-word-id');
-          const wordText = this.getAttribute('data-word-text');
-          
-          if (confirm(`「${wordText}」を削除してもよろしいですか？`)) {
-            // 削除リクエスト送信
-            fetch(`delete.php?id=${wordId}`, {
-              method: 'GET'
-            })
-            .then(response => {
-              if (response.ok) {
-                // 削除成功したら行を非表示にする
-                this.closest('tr').style.display = 'none';
-                
-                // メッセージ表示
-                alert(`「${wordText}」を削除しました。`);
-              } else {
-                throw new Error('削除処理に失敗しました');
-              }
-            })
-            .catch(error => {
-              console.error('エラー:', error);
-              alert('エラーが発生しました: ' + error.message);
-            });
-          }
-        });
-      });
     });
     
     // 音声再生機能の追加
