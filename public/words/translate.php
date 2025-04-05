@@ -15,20 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $text = isset($_POST['text']) ? $_POST['text'] : '';
 $language = isset($_POST['sourceLanguage']) ? $_POST['sourceLanguage'] : '英語';
 $targetLanguage = isset($_POST['targetLanguage']) ? $_POST['targetLanguage'] : '日本語';
-$level = isset($_POST['level']) ? (int)$_POST['level'] : 1;
 
 if (!$text) {
     echo json_encode(['error' => '翻訳する文章が入力されていません。']);
     exit;
 }
 
-$levelDescription = [
-    1 => "抽出レベル（初級：基本的な単語を含め全単語抽出）",
-    2 => "抽出レベル（初中級：頻出単語から専門的単語まで全て抽出）",
-    3 => "抽出レベル（中級：やや高度な単語から全て抽出）",
-    4 => "抽出レベル（中上級：難易度高めの単語から全て抽出）",
-    5 => "抽出レベル（上級：専門的または非常に高度な単語のみ抽出）"
-];
 
 $apiKey = "AIzaSyDEOFn-7w_hlqJn8hQFe9oHfciqoIgeJI4";  
 $apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={$apiKey}";
@@ -43,11 +35,11 @@ $prompt = "
 日本語以外の言語でフリガナは不要です。
 
 【抽出レベルの方針】
-- レベル1：レベル1〜5（すべての未知単語を抽出）
-- レベル2：レベル2〜5の単語を抽出
-- レベル3：レベル3〜5の単語を抽出
-- レベル4：レベル4〜5の難易度が高めの単語を抽出
-- レベル5：専門的・非常に高度な単語のみ抽出
+- レベル1：（初級：基本的な単語を含め全単語抽出）
+- レベル2：（初中級：頻出単語から専門的単語まで全て抽出）
+- レベル3：（中級：やや高度な単語から全て抽出）
+- レベル4：（中上級：難易度高めの単語から全て抽出）
+- レベル5：（上級：専門的または非常に高度な単語のみ抽出）
 
 【必須の単語情報】
 1. word: 必ず {$language} で表記
@@ -82,6 +74,7 @@ $prompt = "
 - 声調記号を含め正確に表記
 - 熟語や慣用句（thành ngữ）は「idiom」としてpart_of_speechに明記
 - 類義語・反意語をnoteに記載
+- 複合語は意味ごとに分解し、noteに分けて記載してください。
 
 以下のJSONフォーマットを厳守し、それ以外の説明文を追加しないでください。
 
@@ -109,8 +102,8 @@ $prompt .= "
 {$text}
 
 ### 単語抽出レベル:
-{$level} - {$levelDescription[$level]}
-";
+抽出レベル1（初級：基本的な単語を含め全単語抽出）"
+;
 
 $data = [
     "contents" => [

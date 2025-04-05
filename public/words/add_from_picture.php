@@ -196,16 +196,6 @@ use TangoTraining\LanguageCode;
           <div class="form-group">
             <textarea id="directInputText" placeholder="登録したいテキストを入力してください" rows="4"></textarea>
           </div>
-          <div class="form-group">
-            <label for="levelSelect">抽出レベル (1〜5):</label>
-            <select id="levelSelect" class="form-control">
-              <option value="1" selected>抽出レベル1(100%)</option>
-              <option value="2">抽出レベル2(80%)</option>
-              <option value="3">抽出レベル3(60%)</option>
-              <option value="4">抽出レベル4(40%)</option>
-              <option value="5">抽出レベル5(20%)</option>
-            </select>
-          </div>
           <button id="directTranslateBtn" class="btn btn-primary">単語を翻訳・抽出</button>
           <div id="directTranslatedTextArea" class="result-area mt-3" style="display: none;">
             <h3>翻訳結果</h3>
@@ -597,14 +587,11 @@ use TangoTraining\LanguageCode;
       // 選択された言語とレベルを取得
       const sourceLanguage = document.getElementById('sourceLanguage').value;
       const targetLanguage = document.getElementById('targetLanguage').value;
-      const level = document.getElementById('levelSelect').value;
       
       // フォームデータの作成
       let formData = new FormData();
       formData.append('text', text);
       formData.append('sourceLanguage', sourceLanguage);
-      formData.append('targetLanguage', targetLanguage);
-      formData.append('level', level);
       
       // 処理中の表示
       document.getElementById('translatedText').textContent = "翻訳中...";
@@ -694,18 +681,16 @@ use TangoTraining\LanguageCode;
         return;
       }
       
-      // 選択された言語とレベルを取得
+      // 選択された言語を取得
       const sourceLanguage = document.getElementById('sourceLanguage').value;
       const targetLanguage = document.getElementById('targetLanguage').value;
-      const level = document.getElementById('levelSelect').value;
       
       // フォームデータの作成
       let formData = new FormData();
       formData.append('text', text);
       formData.append('sourceLanguage', sourceLanguage);
       formData.append('targetLanguage', targetLanguage);
-      formData.append('level', level);
-      
+
       // 処理中の表示
       document.getElementById('directTranslatedText').textContent = "翻訳中...";
       document.getElementById('directTranslatedTextArea').style.display = 'block';
