@@ -4,40 +4,40 @@
  * ログアウト処理。セッションを破棄して確認メッセージを表示。
  */
 
-// エラー表示
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// init.php を読み込む (セッション設定などを含む)
+require_once __DIR__ . '/../src/init.php';
 
-session_start();
+// // エラー表示 // init.php で設定済みのため不要
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
-// AuthクラスとDatabaseクラスを読み込む
-require_once __DIR__ . '/../src/Database.php';
-require_once __DIR__ . '/../src/Auth.php';
+// session_start(); // init.php で開始されるため不要
+
+// AuthクラスとDatabaseクラスを読み込む (init.php で読み込み済みの場合があるが念のため)
+// require_once __DIR__ . '/../src/Database.php'; // init.phpで読み込み済み
+// require_once __DIR__ . '/../src/Auth.php'; // init.phpで読み込み済み
 
 // ログアウト処理（Authクラスを利用）
 $wasLoggedIn = isset($_SESSION['user_id']);
 $userName = $_SESSION['user_name'] ?? 'ユーザー';
 
 // DB接続を取得
-try {
-    $db = new \TangoTraining\Database();
+// $db 変数は init.php で生成されているか確認が必要。
+// Auth::logout は static メソッドなので、DB接続は logout メソッド内で生成される。
+// そのため、ここではDB接続の取得は不要。
 
+try {
+    // $db = new \TangoTraining\Database(); // Auth::logout 内で new するので不要
+    
     // Auth::logout を呼び出してセッションとRememberMeトークンを処理
-    \TangoTraining\Auth::logout($db);
+    // Auth クラスは init.php で読み込まれているはず
+    \TangoTraining\Auth::logout(new \TangoTraining\Database()); // logout 内で DB 接続が再度 new される
 } catch (Exception $e) {
     // エラーの場合は少なくともセッションをクリア
     error_log("ログアウト処理エラー: " . $e->getMessage());
     $_SESSION = [];
     session_destroy();
-}
-
-// 新しいセッションを開始（メッセージ表示用）
-session_start(); // Auth::logout内でdestroyされているので再度開始
-if ($wasLoggedIn) {
-    // ログアウト成功メッセージをフラッシュメッセージとして設定
-    $_SESSION['flash_message'] = 'ログアウトしました。';
-    $_SESSION['flash_type'] = 'success';
 }
 ?>
 <!DOCTYPE html>

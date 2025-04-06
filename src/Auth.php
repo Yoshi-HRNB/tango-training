@@ -16,7 +16,7 @@ class Auth
     private $pdo;
 
     /** クッキー名 */
-    private const REMEMBER_ME_COOKIE = 'remember_me_token';
+    public const REMEMBER_ME_COOKIE = 'remember_me_token';
     /** クッキーとトークンの有効期間 (秒) - 例: 30日 */
     private const REMEMBER_ME_EXPIRY = 60 * 60 * 24 * 30;
 
@@ -101,9 +101,12 @@ class Auth
 
         // RememberMeクッキーとDBトークンを削除
         if (isset($_COOKIE[self::REMEMBER_ME_COOKIE])) {
-            list($selector, $validator) = explode(':', $_COOKIE[self::REMEMBER_ME_COOKIE], 2);
-            if ($selector && $validator) {
-                $auth->deleteToken($selector);
+            $cookieValue = $_COOKIE[self::REMEMBER_ME_COOKIE];
+            if (strpos($cookieValue, ':') !== false) {
+                list($selector, $validator) = explode(':', $cookieValue, 2);
+                if ($selector && $validator) {
+                    $deleted = $auth->deleteToken($selector);
+                }
             }
             $auth->clearRememberMeCookie();
         }
@@ -112,9 +115,10 @@ class Auth
         $_SESSION = [];
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
+            $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'; // Secureフラグ判定追加
             setcookie(session_name(), '', time() - 42000,
                 $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
+                $secure, $params["httponly"] // Secureフラグ適用
             );
         }
         session_destroy();
@@ -283,13 +287,27 @@ class Auth
      */
     private function deleteToken(string $selector): bool
     {
+        // テーブル存在確認を追加
+        try {
+            $check = $this->pdo->query("SHOW TABLES LIKE 'user_tokens'");
+            if ($check->rowCount() === 0) {
+                error_log("[DEBUG] Error deleting token: user_tokens table does not exist."); // このエラーログは残しても良いかもしれないが、一旦削除
+                return false;
+            }
+        } catch (PDOException $e) {
+            error_log("[DEBUG] Error checking user_tokens table existence: " . $e->getMessage()); // このエラーログは残しても良いかもしれないが、一旦削除
+            return false; // テーブル確認でエラーなら削除も失敗とする
+        }
+        
         $sql = "DELETE FROM user_tokens WHERE selector = :selector";
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':selector', $selector);
-            return $stmt->execute();
+            $result = $stmt->execute();
+            // error_log("[DEBUG] Token deletion execute result for selector " . $selector . ": " . ($result ? 'Success' : 'Failure') . ", Rows affected: " . $rowCount); // 削除
+             return $result; // 元の挙動に戻す (rowCount確認はデバッグ用だったため)
         } catch (PDOException $e) {
-            error_log("Error deleting token: " . $e->getMessage());
+            error_log("Error deleting token for selector " . $selector . ": " . $e->getMessage()); // [DEBUG] を削除し、通常のエラーログに戻す
             return false;
         }
     }
@@ -330,8 +348,10 @@ class Auth
      */
     private function clearRememberMeCookie(): void
     {
+        // Secure フラグを setRememberMeCookie と同様に判定
+        $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
         // 過去の時刻を設定してクッキーを無効化
-        setcookie(self::REMEMBER_ME_COOKIE, '', time() - 3600, '/', '', false, true);
+        setcookie(self::REMEMBER_ME_COOKIE, '', time() - 3600, '/', '', $secure, true); // $secure を使用
         //念のためクッキー配列からも削除
         unset($_COOKIE[self::REMEMBER_ME_COOKIE]);
     }

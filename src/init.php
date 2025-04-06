@@ -36,10 +36,10 @@ try {
             $db = new \TangoTraining\Database();
             $auth = new \TangoTraining\Auth($db);
             // 自動ログインを試みる
-            $auth->loginWithToken();
+            $loginSuccess = $auth->loginWithToken();
         } catch (Exception $e) {
             // エラーがあってもサイレントに失敗させる（ログ記録は内部的に行う）
-            error_log('自動ログイン処理に失敗: ' . $e->getMessage());
+            error_log('Exception during auto-login attempt: ' . $e->getMessage());
         }
     }
 } catch (Exception $e) {
