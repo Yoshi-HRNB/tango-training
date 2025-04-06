@@ -9,12 +9,17 @@
  * - 取得した単語は translations をまとめて JSON に変換して返す。
  */
 
-session_start();
+// エラー表示
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-// 未ログインならエラー
+// init.phpを読み込んでセッション管理を統一する
+require_once __DIR__ . '/../../src/init.php';
+
+// ログインチェック - Ajax専用なのでJSONでエラーを返す
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Unauthorized']);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'ログインが必要です']);
     exit;
 }
 

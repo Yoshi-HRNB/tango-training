@@ -3,7 +3,9 @@
  * update.php
  * edit.php のフォームから受け取り、DBを更新。
  */
-session_start();
+// init.phpを読み込んでセッション管理を統一する
+require_once __DIR__ . '/../../src/init.php';
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
     exit;

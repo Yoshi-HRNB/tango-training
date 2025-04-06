@@ -1,5 +1,7 @@
 <?php
-session_start();
+// init.phpを読み込んでセッション管理を統一する
+require_once __DIR__ . '/../../src/init.php';
+
 header('Content-Type: application/json');
 
 // パラメータチェック

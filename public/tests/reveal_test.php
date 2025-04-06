@@ -1,3 +1,18 @@
+<?php
+// init.phpを読み込んでセッション管理を統一する
+require_once __DIR__ . '/../../src/init.php';
+
+// ログイン必須
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../login.php');
+    exit;
+}
+
+// branch_idが0の場合は1に更新（初回アクセス時）
+if (!isset($_SESSION['branch_id']) || $_SESSION['branch_id'] === 0) {
+    $_SESSION['branch_id'] = 1;
+}
+?>
 <!DOCTYPE html>
 <html lang="ja">
 <head>

@@ -8,8 +8,12 @@
  * - その後、reveal_test.php 等のテスト画面へリダイレクト
  */
 
-session_start();
-require_once __DIR__ . '/../../src/Database.php';
+// エラー表示
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+// init.phpを読み込んでセッション管理を統一する
+require_once __DIR__ . '/../../src/init.php';
 
 use TangoTraining\Database;
 

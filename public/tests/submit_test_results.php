@@ -10,7 +10,9 @@
  * 3) word_statistics … 累計正解数/誤答数など更新
  */
 
-session_start();
+// init.phpを読み込んでセッション管理を統一する
+require_once __DIR__ . '/../../src/init.php';
+
 header('Content-Type: application/json');
 
 // セッション変数がなければ不正

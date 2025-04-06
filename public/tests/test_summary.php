@@ -13,7 +13,9 @@ error_reporting(E_ALL);
 // テストエラー
 // echo $undefined_variable; // Commented out to avoid warning
 
-session_start();
+// init.phpを読み込んでセッション管理を統一する
+require_once __DIR__ . '/../../src/init.php';
+
 // ログインチェック
 if (!isset($_SESSION['user_id'], $_SESSION['test_id'])) {
     header('Location: ../login.php');
