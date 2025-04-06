@@ -90,6 +90,18 @@ $filterLanguages = !empty($selectedLanguages) ? $selectedLanguages : null;
 // フィルター条件を指定しつつ単語一覧を取得
 $words = $wordController->getWords($user_id, $search, $filterLanguages, $testFilter);
 
+// 単語の統計情報 (getWords の結果から再計算せず、集計結果として保持)
+//$stats = $wordController->getWordStats($user_id, $search, $filterLanguages, $testFilter);
+//$totalWords = $stats['total'];
+//$testedWords = $stats['tested'];
+//$notTestedWords = $stats['not_tested'];
+//$highAccuracyWords = $stats['high_accuracy']; // 正解率80%以上
+//$mediumAccuracyWords = $stats['medium_accuracy']; // 正解率50%〜79%
+//$lowAccuracyWords = $stats['low_accuracy']; // 正解率50%未満
+
+/*
+// 単語の統計情報
+*/
 // 単語の統計情報
 $totalWords = count($words);
 $testedWords = 0;
@@ -114,6 +126,7 @@ foreach ($words as $word) {
         $notTestedWords++;
     }
 }
+//*/
 ?>
 
 <!DOCTYPE html>
@@ -461,6 +474,154 @@ foreach ($words as $word) {
       background-color: #f8fbff;
       border-left: 3px solid #3498db;
     }
+    
+    /* 学習状況タブ用スタイル */
+    .progress-bar-container {
+      width: 100%;
+      background-color: #e9ecef;
+      border-radius: .25rem;
+      height: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .progress-bar-value {
+      background-color: #0d6efd;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      transition: width 0.6s ease;
+      border-radius: .25rem;
+    }
+    
+    /* 正解率に応じた色分け */
+    .progress-bar-high { background-color: #27ae60; }
+    .progress-bar-medium { background-color: #f39c12; }
+    .progress-bar-low { background-color: #e74c3c; }
+    .progress-bar-untested { background-color: #adb5bd; }
+    
+    /* モバイル用学習状況テーブル */
+    @media (max-width: 768px) {
+      #learning-status-panel .table thead {
+        display: none;
+      }
+      #learning-status-panel .table tbody,
+      #learning-status-panel .table tr,
+      #learning-status-panel .table td {
+        display: block;
+        width: 100% !important;
+        box-sizing: border-box;
+      }
+      #learning-status-panel .table tr {
+        margin-bottom: 1rem;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding: 0.5rem;
+      }
+      #learning-status-panel .table td {
+        text-align: right;
+        position: relative;
+        padding-left: 50%; /* General rule for right-aligned value */
+        border: none;
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
+      #learning-status-panel .table td::before {
+        content: attr(data-label);
+        position: absolute; /* Keep this for general cells */
+        left: 6px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: bold;
+        color: #333;
+      }
+
+      /* Override ::before for the word cell label */
+      #learning-status-panel .table td[data-label="単語"]::before {
+         position: static; /* Make label flow normally */
+         display: block; /* Ensure it takes its own line */
+         width: auto; /* Adjust width automatically */
+         margin-bottom: 3px; /* Add space below label */
+         padding-right: 0; /* Reset right padding */
+         white-space: normal; /* Allow label text to wrap if needed */
+      }
+
+      /* Adjust the word cell itself */
+      #learning-status-panel .table td[data-label="単語"] {
+        padding-left: 6px; /* Remove the large left padding */
+        text-align: left; /* Align word text to the left */
+      }
+
+      /* 正解率バーのラベルは上に */
+      #learning-status-panel .table td[data-label="正解率"]::before {
+         position: static;
+         display: block;
+         margin-bottom: 3px;
+         width: auto;
+      }
+      #learning-status-panel .table td[data-label="正解率"] {
+         padding-left: 6px;
+         text-align: left;
+      }
+    }
+    
+    /* 学習状況の詳細表示 */
+    .learning-summary {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .learning-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .learning-stat-item {
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      text-align: center;
+      min-width: 120px;
+    }
+    
+    .learning-stat-item .number {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin: 0.5rem 0;
+      color: #2c3e50;
+    }
+    
+    .learning-stat-item .label {
+      font-size: 0.875rem;
+      color: #7f8c8d;
+    }
+    
+    .learning-progress {
+      margin-top: 1rem;
+    }
+    
+    .learning-progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+    
+    .learning-progress-label span {
+      font-size: 0.875rem;
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -472,30 +633,6 @@ foreach ($words as $word) {
         <div class="nav-links mb-3">
           <a href="add_from_picture.php" class="btn btn-success">単語登録へ</a>
           <a href="../index.php" class="btn btn-secondary">トップへ戻る</a>
-        </div>
-      </div>
-      
-      <!-- 単語統計ダッシュボード -->
-      <div class="dashboard">
-        <div class="stat-card">
-          <h3>登録単語数</h3>
-          <div class="number"><?php echo $totalWords; ?></div>
-        </div>
-        <div class="stat-card not-tested">
-          <h3>未テスト</h3>
-          <div class="number"><?php echo $notTestedWords; ?></div>
-        </div>
-        <div class="stat-card high-accuracy">
-          <h3>高正解率（80%以上）</h3>
-          <div class="number"><?php echo $highAccuracyWords; ?></div>
-        </div>
-        <div class="stat-card medium-accuracy">
-          <h3>中正解率（50-79%）</h3>
-          <div class="number"><?php echo $mediumAccuracyWords; ?></div>
-        </div>
-        <div class="stat-card low-accuracy">
-          <h3>低正解率（50%未満）</h3>
-          <div class="number"><?php echo $lowAccuracyWords; ?></div>
         </div>
       </div>
       
@@ -558,6 +695,7 @@ foreach ($words as $word) {
         <div class="tabs">
           <div class="tab active" id="tab-list">単語一覧</div>
           <div class="tab" id="tab-filter">検索・フィルター</div>
+          <div class="tab" id="tab-learning-status">学習状況</div>
         </div>
         
         <div id="filter-panel" style="display: none;">
@@ -685,7 +823,7 @@ foreach ($words as $word) {
       </div>
       
       <!-- テーブル部分 -->
-      <div class="table-responsive">
+      <div class="table-responsive" id="list-panel">
         <table class="table">
           <thead>
             <tr>
@@ -749,6 +887,153 @@ foreach ($words as $word) {
           </tbody>
         </table>
       </div>
+      
+      <!-- 学習状況パネル -->
+      <div id="learning-status-panel" style="display: none;">
+        <!-- 学習状況サマリー -->
+        <div class="learning-summary">
+          <h3>学習状況サマリー</h3>
+          
+          <!-- 統計カードをダッシュボードからこちらに移動 -->
+          <div class="dashboard">
+            <div class="stat-card">
+              <h3>登録単語数</h3>
+              <div class="number"><?php echo $totalWords; ?></div>
+            </div>
+            <div class="stat-card not-tested">
+              <h3>未テスト</h3>
+              <div class="number"><?php echo $notTestedWords; ?></div>
+            </div>
+          </div>
+          
+          <!-- 学習進捗 -->
+          <div class="learning-progress">
+            <div class="learning-progress-label">
+              <span>学習進捗</span>
+              <span><?php echo $totalWords > 0 ? round(($testedWords / $totalWords) * 100) : 0; ?>%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-value" style="width: <?php echo $totalWords > 0 ? ($testedWords / $totalWords) * 100 : 0; ?>%;">
+                <?php echo $testedWords; ?>/<?php echo $totalWords; ?>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 正解率分布 -->
+          <div class="learning-progress" style="margin-top: 1.5rem;">
+            <div class="learning-progress-label">
+              <span>正解率分布</span>
+            </div>
+            
+            <div class="learning-progress-label">
+              <span>高正解率 (80%以上)</span>
+              <span><?php echo $testedWords > 0 ? round(($highAccuracyWords / $testedWords) * 100) : 0; ?>%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-value progress-bar-high" style="width: <?php echo $testedWords > 0 ? ($highAccuracyWords / $testedWords) * 100 : 0; ?>%;">
+                <?php echo $highAccuracyWords; ?>
+              </div>
+            </div>
+            
+            <div class="learning-progress-label" style="margin-top: 0.5rem;">
+              <span>中正解率 (50-79%)</span>
+              <span><?php echo $testedWords > 0 ? round(($mediumAccuracyWords / $testedWords) * 100) : 0; ?>%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-value progress-bar-medium" style="width: <?php echo $testedWords > 0 ? ($mediumAccuracyWords / $testedWords) * 100 : 0; ?>%;">
+                <?php echo $mediumAccuracyWords; ?>
+              </div>
+            </div>
+            
+            <div class="learning-progress-label" style="margin-top: 0.5rem;">
+              <span>低正解率 (50%未満)</span>
+              <span><?php echo $testedWords > 0 ? round(($lowAccuracyWords / $testedWords) * 100) : 0; ?>%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-value progress-bar-low" style="width: <?php echo $testedWords > 0 ? ($lowAccuracyWords / $testedWords) * 100 : 0; ?>%;">
+                <?php echo $lowAccuracyWords; ?>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 単語ごとの学習状況テーブル -->
+        <h3>単語ごとの学習状況</h3>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>単語</th>
+                <th>テスト回数</th>
+                <th>正解率</th>
+                <th>最終テスト日</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (count($words) > 0): ?>
+                <?php foreach ($words as $w): ?>
+                  <tr>
+                    <td data-label="単語">
+                      <a href="edit.php?id=<?php echo (int)$w['word_id']; ?>">
+                        <?php echo htmlspecialchars($w['word'], ENT_QUOTES, 'UTF-8'); ?>
+                      </a>
+                      <?php if ($w['language_code'] === 'ja' && !empty($w['reading'])): ?>
+                        <br><small class="text-muted"><?php echo htmlspecialchars($w['reading'], ENT_QUOTES, 'UTF-8'); ?></small>
+                      <?php endif; ?>
+                    </td>
+                    <td data-label="テスト回数"><?php echo isset($w['test_count']) ? (int)$w['test_count'] : 0; ?> 回</td>
+                    <td data-label="正解率">
+                      <?php 
+                        $accuracy = isset($w['accuracy_rate']) ? (int)$w['accuracy_rate'] : null;
+                        $testCount = isset($w['test_count']) ? (int)$w['test_count'] : 0;
+                        $progressBarClass = 'progress-bar-untested'; // デフォルトは未テスト
+                        $displayText = '未テスト';
+                        
+                        if ($testCount > 0 && $accuracy !== null) {
+                          if ($accuracy >= 80) {
+                              $progressBarClass = 'progress-bar-high';
+                          } elseif ($accuracy >= 50) {
+                              $progressBarClass = 'progress-bar-medium';
+                          } else {
+                              $progressBarClass = 'progress-bar-low';
+                          }
+                          $displayText = $accuracy . '%';
+                        } elseif ($testCount > 0 && $accuracy === null) {
+                            // テストはしたが正解率が計算できない場合（稀なケース）
+                            $progressBarClass = 'progress-bar-low'; // 不明な場合は低として表示
+                            $displayText = '0%';
+                            $accuracy = 0; // バー表示のために0を設定
+                        } else {
+                            // 未テストの場合
+                            $accuracy = 0; // バー表示のために0を設定
+                        }
+                      ?>
+                      <div class="progress-bar-container">
+                        <div class="progress-bar-value <?php echo $progressBarClass; ?>" style="width: <?php echo $accuracy; ?>%;">
+                          <?php echo $displayText; ?>
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="最終テスト日">
+                      <?php 
+                      if (isset($w['last_test_date']) && !empty($w['last_test_date'])) {
+                        echo htmlspecialchars(date('Y/m/d', strtotime($w['last_test_date'])), ENT_QUOTES, 'UTF-8');
+                      } else {
+                        echo '-';
+                      }
+                      ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <tr>
+                  <td colspan="4" class="text-center">該当する単語が見つかりません。</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -760,26 +1045,42 @@ foreach ($words as $word) {
       // タブ切り替え
       const tabList = document.getElementById('tab-list');
       const tabFilter = document.getElementById('tab-filter');
+      const tabLearningStatus = document.getElementById('tab-learning-status'); // 学習状況タブ
+      
+      const listPanel = document.getElementById('list-panel');
       const filterPanel = document.getElementById('filter-panel');
+      const learningStatusPanel = document.getElementById('learning-status-panel'); // 学習状況パネル
       
-      tabList.addEventListener('click', function() {
-        tabList.classList.add('active');
-        tabFilter.classList.remove('active');
-        filterPanel.style.display = 'none';
-      });
+      function setActiveTab(activeTab) {
+        // 全てのタブとパネルを非アクティブにする
+        [tabList, tabFilter, tabLearningStatus].forEach(tab => tab.classList.remove('active'));
+        [listPanel, filterPanel, learningStatusPanel].forEach(panel => panel.style.display = 'none');
+        
+        // 指定されたタブとパネルをアクティブにする
+        if (activeTab === tabList) {
+          tabList.classList.add('active');
+          listPanel.style.display = 'block';
+        } else if (activeTab === tabFilter) {
+          tabFilter.classList.add('active');
+          filterPanel.style.display = 'block';
+        } else if (activeTab === tabLearningStatus) {
+          tabLearningStatus.classList.add('active');
+          learningStatusPanel.style.display = 'block';
+        }
+      }
       
-      tabFilter.addEventListener('click', function() {
-        tabFilter.classList.add('active');
-        tabList.classList.remove('active');
-        filterPanel.style.display = 'block';
-      });
+      tabList.addEventListener('click', () => setActiveTab(tabList));
+      tabFilter.addEventListener('click', () => setActiveTab(tabFilter));
+      tabLearningStatus.addEventListener('click', () => setActiveTab(tabLearningStatus)); // 学習状況タブのイベントリスナー
       
       // フィルターパネルを自動的に表示（URLにフィルターパラメータがある場合）
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.has('search') || urlParams.has('translation_languages') || 
           urlParams.has('test_status') || urlParams.has('accuracy_range') ||
           urlParams.has('date_range') || urlParams.has('sort_by')) {
-        tabFilter.click();
+        setActiveTab(tabFilter); // フィルタータブを開く
+      } else {
+        setActiveTab(tabList); // デフォルトは単語一覧タブ
       }
     });
     
