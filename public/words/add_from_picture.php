@@ -602,6 +602,7 @@ use TangoTraining\LanguageCode;
       let formData = new FormData();
       formData.append('text', text);
       formData.append('sourceLanguage', sourceLanguage);
+      formData.append('targetLanguage', targetLanguage);
       
       // 処理中の表示
       document.getElementById('translatedText').textContent = "翻訳中...";

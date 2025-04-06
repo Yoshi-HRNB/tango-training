@@ -13,23 +13,32 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $text = isset($_POST['text']) ? $_POST['text'] : '';
-$language = isset($_POST['sourceLanguage']) ? $_POST['sourceLanguage'] : '英語';
-$targetLanguage = isset($_POST['targetLanguage']) ? $_POST['targetLanguage'] : '日本語';
+$sourceLanguage = isset($_POST['sourceLanguage']) ? $_POST['sourceLanguage'] : '';
+$targetLanguage = isset($_POST['targetLanguage']) ? $_POST['targetLanguage'] : '';
 
 if (!$text) {
     echo json_encode(['error' => '翻訳する文章が入力されていません。']);
     exit;
 }
 
+if (!$sourceLanguage) {
+    echo json_encode(['error' => '翻訳元の言語が指定されていません。']);
+    exit;
+}
+
+if (!$targetLanguage) {
+    echo json_encode(['error' => '翻訳先の言語が指定されていません。']);
+    exit;
+}
 
 $apiKey = "AIzaSyDEOFn-7w_hlqJn8hQFe9oHfciqoIgeJI4";  
 $apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={$apiKey}";
 
 
 $prompt = "
-以下の {$language} の文章を {$targetLanguage} に翻訳し、指定されたレベル(1〜5)に応じた重要単語や熟語を抽出してください。
+以下の {$sourceLanguage} の文章を {$targetLanguage} に翻訳し、指定されたレベル(1〜5)に応じた重要単語や熟語を抽出してください。
 数値（アラビア数字）は抽出対象外とし、熟語や複数の単語で構成される表現は優先的に一つのまとまりとして抽出してください。
-複数単語表現（例: 'in order to', 'make sense' など）は、1つの熟語（またはコロケーション等）として扱ってください。
+複数単語表現（例: 'in order to', '新生活応援' など）は、1つの熟語（またはコロケーション等）として扱ってください。
 複合語は意味ごとに分解し、noteに分けて記載してください。
 @やダブルクォーテーションのような、単語に直接関係のない記号は、抽出対象外としてください。
 日本語以外の言語でフリガナは不要です。
@@ -42,7 +51,7 @@ $prompt = "
 - レベル5：（上級：専門的または非常に高度な単語のみ抽出）
 
 【必須の単語情報】
-1. word: 必ず {$language} で表記
+1. word: 必ず {$sourceLanguage} で表記
 2. meaning: {$targetLanguage} での意味
 3. part_of_speech: {$targetLanguage} 表記（名詞・動詞・形容詞・副詞・熟語・句動詞・コロケーション等）
 4. note:
@@ -56,8 +65,9 @@ $prompt = "
 
 ■ 日本語の場合
 - フリガナ（reading）をカタカナで必ず追加
+- 熟語は必ずnoteに明記
 
-■ 英語の場合（{$language} が英語の場合のみ適用）
+■ 英語の場合（{$sourceLanguage} が英語の場合のみ適用）
 1. 冠詞(a, an, the) は抽出不要
 2. 複数形は原型を note に明記
 3. to不定詞
@@ -83,10 +93,10 @@ $prompt = "
   \"translated_text\": \"（翻訳された文章）\",
   \"extracted_words\": [
     {
-      \"word\": \"（{$language}の単語）\",
+      \"word\": \"（{$sourceLanguage}の単語）\",
 ";
 
-if ($language === '日本語') {
+if ($sourceLanguage === '日本語') {
     $prompt .= "      \"reading\": \"（フリガナ）\",";
 }
 
@@ -204,7 +214,7 @@ foreach ($jsonOutput["extracted_words"] ?? [] as $word) {
     ];
     
     // 日本語の場合はreadingを追加
-    if ($language === '日本語' && isset($word["reading"])) {
+    if ($sourceLanguage === '日本語' && isset($word["reading"])) {
         $wordData["reading"] = $word["reading"];
     }
     
